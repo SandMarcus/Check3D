@@ -1,4 +1,4 @@
-import { createViewer } from './viewer.js?v=20261101-8';
+import { createViewer } from './viewer.js?v=20261101-9';
 
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
@@ -115,12 +115,21 @@ $('clay').addEventListener('change', e => {
   else viewer.setDisplayMode('solid');
 });
 $('backgroundSelect').addEventListener('change', e => viewer.setBackground(e.target.value));
-$('rotationStep').addEventListener('input', e => { $('rotationOutput').textContent = e.target.value + '°'; });
-document.querySelectorAll('[data-rotate]').forEach(button => button.addEventListener('click', () => {
-  const [axis, direction] = button.dataset.rotate.split(':');
-  viewer.rotateModel(axis, Number(direction) * Number($('rotationStep').value));
-}));
-$('resetRotation').addEventListener('click', () => viewer.resetModelRotation());
+['x', 'y', 'z'].forEach(axis => {
+  const slider = $('rotate' + axis.toUpperCase());
+  const output = $('rotate' + axis.toUpperCase() + 'Value');
+  slider.addEventListener('input', () => {
+    output.textContent = slider.value + '°';
+    viewer.setModelRotation(axis, Number(slider.value));
+  });
+});
+$('resetRotation').addEventListener('click', () => {
+  viewer.resetModelRotation();
+  ['x', 'y', 'z'].forEach(axis => {
+    $('rotate' + axis.toUpperCase()).value = 0;
+    $('rotate' + axis.toUpperCase() + 'Value').textContent = '0°';
+  });
+});
 $('autoRotate').addEventListener('change', e => viewer.setAutoRotate(e.target.checked));
 $('modelColor').addEventListener('input', e => viewer.setColor(e.target.value));
 document.querySelectorAll('[data-view], [data-camera]').forEach(button => button.addEventListener('click', () => viewer.setView(button.dataset.view || button.dataset.camera)));
