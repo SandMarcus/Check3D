@@ -69,3 +69,14 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #rotationPanel .rotation-axis{margin:20px 0 24px}
 #rotationPanel .rotation-slider{height:34px}
 @media(max-width:480px){.tool-tabs{gap:2px;padding-top:8px}.tool-tab{gap:5px;padding:9px 3px;font-size:12px}.tool-tab span{font-size:16px}#rotationPanel{padding-top:14px}}
+
+
+/* v1.1.3: aligned tool tabs and explicit rotation slider visibility */
+.tool-tabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;align-items:stretch;width:100%;max-width:850px}
+.tool-tab{width:100%;min-width:0;min-height:44px;display:flex;align-items:center;justify-content:center;white-space:nowrap}
+#rotationPanel:not([hidden]){display:block!important;visibility:visible!important}
+#rotationPanel .rotation-axis{display:block!important;width:100%;margin:18px 0 24px}
+#rotationPanel .rotation-scale{display:grid!important;grid-template-columns:18px minmax(0,1fr) 18px!important;align-items:center;width:100%}
+#rotationPanel input.rotation-slider{display:block!important;visibility:visible!important;opacity:1!important;width:100%;min-width:0;height:34px;appearance:auto;-webkit-appearance:slider-horizontal;accent-color:var(--accent)}
+@media(min-width:900px){.tool-tabs{grid-column:2;grid-row:1}.control-panel{grid-column:2;grid-row:1}}
+@media(max-width:480px){.tool-tabs{grid-template-columns:repeat(4,minmax(0,1fr))!important}.tool-tab{font-size:11px;padding-left:1px;padding-right:1px}}
