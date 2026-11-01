@@ -57,3 +57,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .rotation-slider::-moz-range-progress{background:var(--line)}
 .rotation-slider::-webkit-slider-thumb{margin-top:-6px}
 #backgroundSelect{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:145px}
+
+
+/* v1.1.2: dedicated rotation tab and collapsible settings */
+.tool-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+.group-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 2px;background:transparent;border:0;border-top:1px solid var(--line);color:var(--text);font-size:13px;font-weight:650;text-align:left}
+.group-chevron{color:var(--muted);font-size:18px;transition:transform .18s ease}
+.group-toggle[aria-expanded="false"] .group-chevron{transform:rotate(-90deg)}
+.group-content[hidden]{display:none!important}
+.option-group{margin-top:8px}
+#rotationPanel .rotation-axis{margin:20px 0 24px}
+#rotationPanel .rotation-slider{height:34px}
+@media(max-width:480px){.tool-tabs{gap:2px;padding-top:8px}.tool-tab{gap:5px;padding:9px 3px;font-size:12px}.tool-tab span{font-size:16px}#rotationPanel{padding-top:14px}}
