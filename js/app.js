@@ -68,14 +68,22 @@ async function loadFile(file) {
 function resetMoveControls() {
   ['x','y','z'].forEach(axis => {
     $('move' + axis.toUpperCase()).value = 0;
-    $('move' + axis.toUpperCase() + 'Value').textContent = '0 mm';
+    $('move' + axis.toUpperCase() + 'Value').value = 0;
   });
 }
 ['x','y','z'].forEach(axis => {
   const slider = $('move' + axis.toUpperCase());
+  const valueInput = $('move' + axis.toUpperCase() + 'Value');
   slider.addEventListener('input', () => {
     const value = Number(slider.value);
-    $('move' + axis.toUpperCase() + 'Value').textContent = value.toFixed(1) + ' mm';
+    valueInput.value = value;
+    viewer.setModelPosition(axis, value);
+  });
+  valueInput.addEventListener('change', () => {
+    const min = Number(slider.min), max = Number(slider.max);
+    const value = Math.max(min, Math.min(max, Number(valueInput.value) || 0));
+    valueInput.value = value;
+    slider.value = value;
     viewer.setModelPosition(axis, value);
   });
 });
@@ -147,15 +155,21 @@ $('backgroundSelect').addEventListener('change', e => viewer.setBackground(e.tar
   const slider = $('rotate' + axis.toUpperCase());
   const output = $('rotate' + axis.toUpperCase() + 'Value');
   slider.addEventListener('input', () => {
-    output.textContent = slider.value + '°';
+    output.value = slider.value;
     viewer.setModelRotation(axis, Number(slider.value));
+  });
+  output.addEventListener('change', () => {
+    const value = Math.max(-180, Math.min(180, Number(output.value) || 0));
+    output.value = value;
+    slider.value = value;
+    viewer.setModelRotation(axis, value);
   });
 });
 $('resetRotation').addEventListener('click', () => {
   viewer.resetModelRotation();
   ['x', 'y', 'z'].forEach(axis => {
     $('rotate' + axis.toUpperCase()).value = 0;
-    $('rotate' + axis.toUpperCase() + 'Value').textContent = '0°';
+    $('rotate' + axis.toUpperCase() + 'Value').value = 0;
   });
 });
 $('autoRotate').addEventListener('change', e => viewer.setAutoRotate(e.target.checked));
