@@ -136,7 +136,7 @@ document.querySelectorAll('[data-view], [data-camera]').forEach(button => button
 
 document.querySelectorAll('.tool-tab').forEach(tab => tab.addEventListener('click', () => {
   document.querySelectorAll('.tool-tab').forEach(t => t.classList.toggle('active', t === tab));
-  ['cutPanel', 'infoPanel', 'viewPanel'].forEach(id => $(id).hidden = id !== tab.dataset.panel);
+  ['cutPanel', 'infoPanel', 'viewPanel', 'rotationPanel'].forEach(id => $(id).hidden = id !== tab.dataset.panel);
 }));
 
 // Drag-and-drop is available on desktop; mobile users use the native file picker.
@@ -147,4 +147,13 @@ viewport.addEventListener('drop', e => {
   e.preventDefault(); viewport.classList.remove('dragging');
   const file = e.dataTransfer.files?.[0];
   if (file) loadFile(file);
+});
+
+
+document.querySelectorAll('.group-toggle').forEach(toggle => {
+  toggle.addEventListener('click', () => {
+    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!expanded));
+    $(toggle.getAttribute('aria-controls')).hidden = expanded;
+  });
 });
