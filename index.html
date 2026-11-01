@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111318">
   <title>Check3D</title>
-  <link rel="stylesheet" href="./css/style.css?v=20261101-7">
+  <link rel="stylesheet" href="./css/style.css?v=20261101-9">
   <script type="importmap">
     {
       "imports": {
@@ -93,20 +93,16 @@
         <div class="color-row"><label for="modelColor">Model color</label><input type="color" id="modelColor" value="#b9c5d4"></div>
         <div class="color-row"><label for="backgroundSelect">Background</label><select id="backgroundSelect"><option value="dark">Dark studio</option><option value="white">White</option><option value="sunset">Warm studio</option></select></div>
         <div class="rotation-tools">
-          <div class="slider-heading"><label>Rotate model</label><output id="rotationOutput">15°</output></div>
-          <input id="rotationStep" class="range" type="range" min="5" max="90" step="5" value="15">
-          <div class="rotation-row">
-            <button class="option-button" data-rotate="x:-1">X−</button><button class="option-button" data-rotate="x:1">X+</button>
-            <button class="option-button" data-rotate="y:-1">Y−</button><button class="option-button" data-rotate="y:1">Y+</button>
-            <button class="option-button" data-rotate="z:-1">Z−</button><button class="option-button" data-rotate="z:1">Z+</button>
-          </div>
-          <button class="text-button" id="resetRotation">Reset model rotation</button>
+          <div class="panel-heading"><div><h2>Model rotation</h2><p>Drag from the centre to rotate in either direction.</p></div><button class="text-button" id="resetRotation">Reset</button></div>
+          <div class="rotation-axis"><label for="rotateX">X <output id="rotateXValue">0°</output></label><div class="rotation-scale"><span>−</span><input id="rotateX" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
+          <div class="rotation-axis"><label for="rotateY">Y <output id="rotateYValue">0°</output></label><div class="rotation-scale"><span>−</span><input id="rotateY" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
+          <div class="rotation-axis"><label for="rotateZ">Z <output id="rotateZValue">0°</output></label><div class="rotation-scale"><span>−</span><input id="rotateZ" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
         </div>
         <div class="button-row"><button class="option-button" data-camera="front">Front view</button><button class="option-button" data-camera="top">Top view</button><button class="option-button" data-camera="side">Side view</button></div>
       </section>
     </section>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <footer class="app-footer">Check3D <span>v1.1.0</span> <span class="footer-separator">·</span> Updated 1 Nov 2026</footer>
+    <footer class="app-footer">Check3D <span>v1.1.1</span> <span class="footer-separator">·</span> Updated 1 Nov 2026</footer>
   </main>
   <script type="module" src="./js/app.js?v=20261101-7"></script>
 </body>
