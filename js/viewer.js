@@ -145,6 +145,9 @@ export function createViewer(canvas, container) {
       const materials = Array.isArray(object.material) ? object.material : [object.material];
       materials.forEach(material => {
         material.side = THREE.DoubleSide;
+        if (material.color && material.userData.check3dOriginalColor === undefined) {
+          material.userData.check3dOriginalColor = material.color.getHex();
+        }
         material.clippingPlanes = [];
         material.needsUpdate = true;
       });
@@ -191,7 +194,11 @@ export function createViewer(canvas, container) {
       material.transparent = displayMode === 'xray';
       material.opacity = displayMode === 'xray' ? 0.28 : 1;
       material.depthWrite = displayMode !== 'xray';
-      if (displayMode === 'clay' && material.color) material.color.set(0xb9c1cc);
+      if (material.color) {
+        if (displayMode === 'clay') material.color.set(0xb9c1cc);
+        else if (material.userData.check3dUserColor) material.color.set(material.userData.check3dUserColor);
+        else if (material.userData.check3dOriginalColor !== undefined) material.color.setHex(material.userData.check3dOriginalColor);
+      }
       material.needsUpdate = true;
     });
   }
@@ -262,7 +269,8 @@ export function createViewer(canvas, container) {
     },
     setColor(value) {
       eachMaterial(material => {
-        if (material.color) material.color.set(value);
+        material.userData.check3dUserColor = value;
+        if (material.color && displayMode !== 'clay') material.color.set(value);
       });
     },
     setAutoRotate(value) { controls.autoRotate = value; },
