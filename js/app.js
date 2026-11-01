@@ -1,4 +1,4 @@
-import { createViewer } from './viewer.js?v=20261101-5';
+import { createViewer } from './viewer.js?v=20261101-6';
 
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
@@ -102,7 +102,25 @@ $('clearCut').addEventListener('click', () => {
 $('resetView').addEventListener('click', () => viewer.fit());
 $('showGrid').addEventListener('change', e => viewer.showGrid(e.target.checked));
 $('gridToggle').addEventListener('change', e => { $('showGrid').checked = e.target.checked; viewer.showGrid(e.target.checked); });
-$('wireframe').addEventListener('change', e => viewer.setWireframe(e.target.checked));
+$('wireframe').addEventListener('change', e => {
+  if (e.target.checked) { $('xray').checked = false; $('clay').checked = false; viewer.setDisplayMode('wireframe'); }
+  else viewer.setDisplayMode('solid');
+});
+$('xray').addEventListener('change', e => {
+  if (e.target.checked) { $('wireframe').checked = false; $('clay').checked = false; viewer.setDisplayMode('xray'); }
+  else viewer.setDisplayMode('solid');
+});
+$('clay').addEventListener('change', e => {
+  if (e.target.checked) { $('wireframe').checked = false; $('xray').checked = false; viewer.setDisplayMode('clay'); }
+  else viewer.setDisplayMode('solid');
+});
+$('backgroundSelect').addEventListener('change', e => viewer.setBackground(e.target.value));
+$('rotationStep').addEventListener('input', e => { $('rotationOutput').textContent = e.target.value + '°'; });
+document.querySelectorAll('[data-rotate]').forEach(button => button.addEventListener('click', () => {
+  const [axis, direction] = button.dataset.rotate.split(':');
+  viewer.rotateModel(axis, Number(direction) * Number($('rotationStep').value));
+}));
+$('resetRotation').addEventListener('click', () => viewer.resetModelRotation());
 $('autoRotate').addEventListener('change', e => viewer.setAutoRotate(e.target.checked));
 $('modelColor').addEventListener('input', e => viewer.setColor(e.target.value));
 document.querySelectorAll('[data-view], [data-camera]').forEach(button => button.addEventListener('click', () => viewer.setView(button.dataset.view || button.dataset.camera)));
