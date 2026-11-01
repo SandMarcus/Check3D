@@ -227,7 +227,7 @@ function selectedVendor() {
   return printerCatalog?.vendors.find(v => v.id === $('sliceManufacturer').value) || null;
 }
 function modelAlias(model, vendor) {
-  return model.replace(new RegExp('^' + vendor.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + '\\s+', 'i'), '').trim();
+  return model.toLowerCase().startsWith(vendor.toLowerCase()) ? model.slice(vendor.length).trim() : model;
 }
 function updatePrinterProfiles() {
   const vendor = selectedVendor();
