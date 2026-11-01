@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { ThreeMFLoader } from 'three/addons/loaders/3MFLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 export function createViewer(canvas, container) {
@@ -30,7 +34,7 @@ export function createViewer(canvas, container) {
   grid.position.y = -0.01;
   scene.add(grid);
 
-  let mesh = null;
+  let modelRoot = null;
   let bounds = null;
   let cutAxis = 'z';
   let cutRatio = 0;
@@ -56,36 +60,96 @@ export function createViewer(canvas, container) {
   animate();
   resize();
 
-  function disposeMesh() {
-    if (!mesh) return;
-    scene.remove(mesh);
-    mesh.geometry.dispose();
-    mesh.material.dispose();
-    mesh = null;
+  function eachMaterial(callback) {
+    if (!modelRoot) return;
+    modelRoot.traverse(object => {
+      if (!object.isMesh || !object.material) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach(callback);
+    });
+  }
+
+  function disposeModel() {
+    if (!modelRoot) return;
+    scene.remove(modelRoot);
+    modelRoot.traverse(object => {
+      if (!object.isMesh) return;
+      object.geometry?.dispose();
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach(material => material?.dispose());
+    });
+    modelRoot = null;
+    bounds = null;
+  }
+
+  async function parseFile(file, buffer) {
+    const extension = file.name.split('.').pop().toLowerCase();
+    if (extension === 'stl') {
+      const geometry = new STLLoader().parse(buffer);
+      geometry.computeVertexNormals();
+      return new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+        color: 0xb9c5d4, roughness: 0.72, metalness: 0.05, side: THREE.DoubleSide
+      }));
+    }
+    if (extension === '3mf') return new ThreeMFLoader().parse(buffer);
+    if (extension === 'obj') return new OBJLoader().parse(new TextDecoder().decode(buffer));
+    if (extension === 'ply') {
+      const geometry = new PLYLoader().parse(buffer);
+      if (!geometry.attributes.normal) geometry.computeVertexNormals();
+      const material = new THREE.MeshStandardMaterial({
+        color: 0xb9c5d4, roughness: 0.72, metalness: 0.05,
+        side: THREE.DoubleSide, vertexColors: geometry.hasAttribute('color')
+      });
+      return new THREE.Mesh(geometry, material);
+    }
+    if (extension === 'glb' || extension === 'gltf') {
+      const loader = new GLTFLoader();
+      return await new Promise((resolve, reject) => {
+        loader.parse(buffer, '', result => resolve(result.scene), reject);
+      });
+    }
+    throw new Error('Unsupported file format');
   }
 
   async function load(file) {
     const buffer = await file.arrayBuffer();
-    const geometry = new STLLoader().parse(buffer);
-    geometry.computeVertexNormals();
-    geometry.computeBoundingBox();
-    disposeMesh();
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xb9c5d4, roughness: 0.72, metalness: 0.05,
-      side: THREE.DoubleSide, clippingPlanes: []
+    const loaded = await parseFile(file, buffer);
+    const root = loaded.isObject3D ? loaded : new THREE.Group().add(loaded);
+    root.updateMatrixWorld(true);
+    const nextBounds = new THREE.Box3().setFromObject(root);
+    if (nextBounds.isEmpty()) throw new Error('The file does not contain a visible 3D mesh');
+
+    // Keep imported materials and textures, while making all meshes compatible
+    // with the viewer's clipping, wireframe and color controls.
+    root.traverse(object => {
+      if (!object.isMesh) return;
+      if (!object.material) {
+        object.material = new THREE.MeshStandardMaterial({ color: 0xb9c5d4 });
+      }
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach(material => {
+        material.side = THREE.DoubleSide;
+        material.clippingPlanes = [];
+        material.needsUpdate = true;
+      });
     });
-    mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-    bounds = geometry.boundingBox.clone();
+
+    disposeModel();
+    modelRoot = root;
+    scene.add(modelRoot);
+    modelRoot.updateMatrixWorld(true);
+    bounds = new THREE.Box3().setFromObject(modelRoot);
     fit();
-    grid.scale.setScalar(Math.max(bounds.getSize(new THREE.Vector3()).length() / 200, 0.01));
-    grid.position.set(bounds.getCenter(new THREE.Vector3()).x, bounds.min.y, bounds.getCenter(new THREE.Vector3()).z);
+    const size = bounds.getSize(new THREE.Vector3());
+    const center = bounds.getCenter(new THREE.Vector3());
+    grid.scale.setScalar(Math.max(size.length() / 200, 0.01));
+    grid.position.set(center.x, bounds.min.y, center.z);
     applyCut();
     return getInfo();
   }
 
   function fit() {
-    if (!mesh || !bounds) return;
+    if (!modelRoot == null || !bounds) return;
     const size = bounds.getSize(new THREE.Vector3());
     const center = bounds.getCenter(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z, 1);
@@ -101,28 +165,34 @@ export function createViewer(canvas, container) {
   }
 
   function applyCut() {
-    if (!mesh || !bounds) return;
-    const min = bounds.min;
-    const max = bounds.max;
+    if (!modelRoot || !bounds) return;
     const axisIndex = { x: 0, y: 1, z: 2 }[cutAxis];
-    const lo = min.getComponent(axisIndex);
-    const hi = max.getComponent(axisIndex);
+    const lo = bounds.min.getComponent(axisIndex);
+    const hi = bounds.max.getComponent(axisIndex);
     const position = lo + (hi - lo) * cutRatio;
     const normal = new THREE.Vector3();
     normal.setComponent(axisIndex, inverted ? -1 : 1);
     cutPlane = new THREE.Plane(normal, inverted ? position : -position);
-    mesh.material.clippingPlanes = [cutPlane];
-    mesh.material.needsUpdate = true;
+    eachMaterial(material => {
+      material.clippingPlanes = [cutPlane];
+      material.needsUpdate = true;
+    });
   }
 
   return {
     load,
     fit,
     getInfo() {
-      if (!mesh) return null;
+      if (!modelRoot || !bounds) return null;
       const size = bounds.getSize(new THREE.Vector3());
-      const position = mesh.geometry.attributes.position;
-      return { size, triangles: Math.floor(position.count / 3) };
+      let triangles = 0;
+      modelRoot.traverse(object => {
+        if (!object.isMesh || !object.geometry) return;
+        const geometry = object.geometry;
+        const count = geometry.index ? geometry.index.count : geometry.attributes.position?.count || 0;
+        triangles += Math.floor(count / 3);
+      });
+      return { size, triangles };
     },
     setCut(axis, ratio, invert = false) {
       cutAxis = axis;
@@ -131,7 +201,7 @@ export function createViewer(canvas, container) {
       applyCut();
     },
     clearCut() {
-      if (mesh) mesh.material.clippingPlanes = [];
+      eachMaterial(material => { material.clippingPlanes = []; });
       cutRatio = 0;
       inverted = false;
     },
@@ -146,11 +216,15 @@ export function createViewer(canvas, container) {
       return { min: bounds.min.getComponent(i), max: bounds.max.getComponent(i) };
     },
     showGrid(value) { grid.visible = value; },
-    setWireframe(value) { if (mesh) mesh.material.wireframe = value; },
-    setColor(value) { if (mesh) mesh.material.color.set(value); },
+    setWireframe(value) { eachMaterial(material => { material.wireframe = value; }); },
+    setColor(value) {
+      eachMaterial(material => {
+        if (material.color) material.color.set(value);
+      });
+    },
     setAutoRotate(value) { controls.autoRotate = value; },
     setView(view) {
-      if (!mesh || !bounds) return;
+      if (!modelRoot || !bounds) return;
       const center = bounds.getCenter(new THREE.Vector3());
       const size = bounds.getSize(new THREE.Vector3());
       const d = Math.max(size.x, size.y, size.z, 1) * 2.2;
