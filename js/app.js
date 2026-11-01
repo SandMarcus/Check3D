@@ -22,7 +22,7 @@ $('fileInput').addEventListener('change', async (event) => {
 });
 
 async function loadFile(file) {
-  if (!file.name.toLowerCase().endsWith('.stl')) return toast('Please choose an STL file.');
+  const supported = /\\.(stl|3mf|obj|glb|gltf|ply)$/i.test(file.name);\n  if (!supported) return toast('Unsupported file. Choose STL, 3MF, OBJ, GLB, GLTF or PLY.');
   try {
     await viewer.load(file);
     currentFile = file;
@@ -43,10 +43,10 @@ async function loadFile(file) {
     $('cutSlider').value = 0;
     viewer.setCut('z', 0, false);
     updateCutOutput();
-    toast('STL loaded successfully.');
+    toast('3D model loaded successfully.');
   } catch (error) {
     console.error(error);
-    toast('Could not read this STL file.');
+    toast('Could not read this 3D file. Check that the format is supported.');
   }
 }
 function formatBytes(bytes) {
