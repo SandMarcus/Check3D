@@ -22,7 +22,8 @@ $('fileInput').addEventListener('change', async (event) => {
 });
 
 async function loadFile(file) {
-  const supported = /\\.(stl|3mf|obj|glb|gltf|ply)$/i.test(file.name);\n  if (!supported) return toast('Unsupported file. Choose STL, 3MF, OBJ, GLB, GLTF or PLY.');
+  const supported = /\.(stl|3mf|obj|glb|gltf|ply)$/i.test(file.name);
+  if (!supported) return toast('Unsupported file. Choose STL, 3MF, OBJ, GLB, GLTF or PLY.');
   try {
     await viewer.load(file);
     currentFile = file;
