@@ -40,6 +40,9 @@ export function createViewer(canvas, container) {
   let cutRatio = 0;
   let inverted = false;
   let cutPlane = null;
+  let modelPivot = null;
+  let displayMode = 'solid';
+  let backgroundMode = 'dark';
 
   function resize() {
     const rect = container.getBoundingClientRect();
@@ -148,15 +151,20 @@ export function createViewer(canvas, container) {
     });
 
     disposeModel();
-    modelRoot = root;
+    const center = nextBounds.getCenter(new THREE.Vector3());
+    modelPivot = new THREE.Group();
+    modelPivot.position.copy(center);
+    root.position.sub(center);
+    modelPivot.add(root);
+    modelRoot = modelPivot;
     scene.add(modelRoot);
     modelRoot.updateMatrixWorld(true);
     bounds = new THREE.Box3().setFromObject(modelRoot);
     fit();
     const size = bounds.getSize(new THREE.Vector3());
-    const center = bounds.getCenter(new THREE.Vector3());
+    const modelCenter = bounds.getCenter(new THREE.Vector3());
     grid.scale.setScalar(Math.max(size.length() / 200, 0.01));
-    grid.position.set(center.x, bounds.min.y, center.z);
+    grid.position.set(modelCenter.x, bounds.min.y, modelCenter.z);
     applyCut();
     return getInfo();
   }
@@ -175,6 +183,17 @@ export function createViewer(canvas, container) {
     controls.minDistance = maxDim * 0.03;
     controls.maxDistance = maxDim * 30;
     controls.update();
+  }
+
+  function applyDisplayMode() {
+    eachMaterial(material => {
+      material.wireframe = displayMode === 'wireframe';
+      material.transparent = displayMode === 'xray';
+      material.opacity = displayMode === 'xray' ? 0.28 : 1;
+      material.depthWrite = displayMode !== 'xray';
+      if (displayMode === 'clay' && material.color) material.color.set(0xb9c1cc);
+      material.needsUpdate = true;
+    });
   }
 
   function applyCut() {
@@ -218,7 +237,29 @@ export function createViewer(canvas, container) {
       return { min: bounds.min.getComponent(i), max: bounds.max.getComponent(i) };
     },
     showGrid(value) { grid.visible = value; },
-    setWireframe(value) { eachMaterial(material => { material.wireframe = value; }); },
+    setWireframe(value) { displayMode = value ? 'wireframe' : 'solid'; applyDisplayMode(); },
+    setDisplayMode(mode) { displayMode = mode; applyDisplayMode(); },
+    setBackground(mode) {
+      backgroundMode = mode;
+      const colors = { dark: 0x101318, white: 0xe9edf2, sunset: 0x3a2930 };
+      renderer.setClearColor(colors[mode] ?? colors.dark);
+      scene.background = new THREE.Color(colors[mode] ?? colors.dark);
+      grid.visible = grid.visible;
+    },
+    rotateModel(axis, degrees) {
+      if (!modelPivot) return;
+      modelPivot.rotation[axis] += THREE.MathUtils.degToRad(degrees);
+      modelPivot.updateMatrixWorld(true);
+      bounds = new THREE.Box3().setFromObject(modelPivot);
+      applyCut();
+    },
+    resetModelRotation() {
+      if (!modelPivot) return;
+      modelPivot.rotation.set(0, 0, 0);
+      modelPivot.updateMatrixWorld(true);
+      bounds = new THREE.Box3().setFromObject(modelPivot);
+      applyCut();
+    },
     setColor(value) {
       eachMaterial(material => {
         if (material.color) material.color.set(value);
