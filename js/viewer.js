@@ -123,13 +123,27 @@ export function createViewer(canvas, container) {
     if (!modelRoot || !bounds) return null;
     const size = bounds.getSize(new THREE.Vector3());
     let triangles = 0;
+    let volume = 0;
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    modelRoot.updateMatrixWorld(true);
     modelRoot.traverse(object => {
-      if (!object.isMesh || !object.geometry) return;
+      if (!object.isMesh || !object.geometry?.attributes.position) return;
       const geometry = object.geometry;
-      const count = geometry.index ? geometry.index.count : geometry.attributes.position?.count || 0;
+      const positions = geometry.attributes.position;
+      const index = geometry.index;
+      const count = index ? index.count : positions.count;
       triangles += Math.floor(count / 3);
+      for (let i = 0; i + 2 < count; i += 3) {
+        const ia = index ? index.getX(i) : i;
+        const ib = index ? index.getX(i + 1) : i + 1;
+        const ic = index ? index.getX(i + 2) : i + 2;
+        a.fromBufferAttribute(positions, ia).applyMatrix4(object.matrixWorld);
+        b.fromBufferAttribute(positions, ib).applyMatrix4(object.matrixWorld);
+        c.fromBufferAttribute(positions, ic).applyMatrix4(object.matrixWorld);
+        volume += a.dot(b.clone().cross(c)) / 6;
+      }
     });
-    return { size, triangles };
+    return { size, triangles, volume: Math.abs(volume) };
   }
 
   async function load(file) {
