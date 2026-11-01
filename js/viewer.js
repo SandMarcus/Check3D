@@ -43,6 +43,8 @@ export function createViewer(canvas, container) {
   let inverted = false;
   let cutPlane = null;
   let modelPivot = null;
+  let pivotOrigin = new THREE.Vector3();
+  const modelPosition = { x: 0, y: 0, z: 0 };
   let displayMode = 'solid';
   let backgroundMode = 'dark';
   const modelRotation = { x: 0, y: 0, z: 0 };
@@ -159,6 +161,8 @@ export function createViewer(canvas, container) {
     disposeModel();
     const center = nextBounds.getCenter(new THREE.Vector3());
     modelPivot = new THREE.Group();
+    pivotOrigin.copy(center);
+    modelPosition.x = modelPosition.y = modelPosition.z = 0;
     modelPivot.position.copy(center);
     root.position.sub(center);
     modelPivot.add(root);
@@ -255,6 +259,22 @@ export function createViewer(canvas, container) {
       renderer.setClearColor(colors[mode] ?? colors.dark);
       scene.background = new THREE.Color(colors[mode] ?? colors.dark);
       grid.visible = grid.visible;
+    },
+    setModelPosition(axis, value) {
+      if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return;
+      modelPosition[axis] = Number(value) || 0;
+      modelPivot.position.set(pivotOrigin.x + modelPosition.x, pivotOrigin.y + modelPosition.y, pivotOrigin.z + modelPosition.z);
+      modelPivot.updateMatrixWorld(true);
+      bounds = new THREE.Box3().setFromObject(modelPivot);
+      applyCut();
+    },
+    resetModelPosition() {
+      if (!modelPivot) return;
+      modelPosition.x = modelPosition.y = modelPosition.z = 0;
+      modelPivot.position.copy(pivotOrigin);
+      modelPivot.updateMatrixWorld(true);
+      bounds = new THREE.Box3().setFromObject(modelPivot);
+      applyCut();
     },
     setModelRotation(axis, degrees) {
       if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return;
