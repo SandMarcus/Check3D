@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111318">
   <title>Check3D</title>
-  <link rel="stylesheet" href="./css/style.css?v=20261101-13">
+  <link rel="stylesheet" href="./css/style.css?v=20261101-14">
   <script type="importmap">
     {
       "imports": {
@@ -107,22 +107,22 @@
 
       <section class="control-panel" id="rotationPanel" hidden>
         <div class="panel-heading"><div><h2>Model rotation</h2><p>Drag from the centre to rotate in either direction.</p></div><button class="text-button" id="resetRotation">Reset</button></div>
-        <div class="rotation-axis"><label for="rotateX">X <output id="rotateXValue">0°</output></label><div class="rotation-scale"><span>−</span><input id="rotateX" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
-        <div class="rotation-axis"><label for="rotateY">Y <output id="rotateYValue">0°</output></label><div class="rotation-scale"><span>−</span><input id="rotateY" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
-        <div class="rotation-axis"><label for="rotateZ">Z <output id="rotateZValue">0°</output></label><div class="rotation-scale"><span>−</span><input id="rotateZ" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
+        <div class="rotation-axis"><label for="rotateX">X <input id="rotateXValue" class="value-input" type="number" min="-180" max="180" step="1" value="0" aria-label="Rotation X in degrees"></label><div class="rotation-scale"><span>−</span><input id="rotateX" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
+        <div class="rotation-axis"><label for="rotateY">Y <input id="rotateYValue" class="value-input" type="number" min="-180" max="180" step="1" value="0" aria-label="Rotation Y in degrees"></label><div class="rotation-scale"><span>−</span><input id="rotateY" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
+        <div class="rotation-axis"><label for="rotateZ">Z <input id="rotateZValue" class="value-input" type="number" min="-180" max="180" step="1" value="0" aria-label="Rotation Z in degrees"></label><div class="rotation-scale"><span>−</span><input id="rotateZ" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
       </section>
 
       <section class="control-panel" id="movePanel" hidden>
         <div class="panel-heading"><div><h2>Move model</h2><p>Adjust position along each axis.</p></div><button class="text-button" id="resetMove">Reset</button></div>
-        <div class="move-axis"><label for="moveX">X <output id="moveXValue">0 mm</output></label><div class="move-scale"><span>-</span><input id="moveX" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div>
-        <div class="move-axis"><label for="moveY">Y <output id="moveYValue">0 mm</output></label><div class="move-scale"><span>-</span><input id="moveY" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div>
-        <div class="move-axis"><label for="moveZ">Z <output id="moveZValue">0 mm</output></label><div class="move-scale"><span>-</span><input id="moveZ" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div>
+        <div class="move-axis"><label for="moveX">X <input id="moveXValue" class="value-input" type="number" step="0.1" value="0" aria-label="Position X in millimetres"></label><div class="move-scale"><span>-</span><input id="moveX" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div>
+        <div class="move-axis"><label for="moveY">Y <input id="moveYValue" class="value-input" type="number" step="0.1" value="0" aria-label="Position Y in millimetres"></label><div class="move-scale"><span>-</span><input id="moveY" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div>
+        <div class="move-axis"><label for="moveZ">Z <input id="moveZValue" class="value-input" type="number" step="0.1" value="0" aria-label="Position Z in millimetres"></label><div class="move-scale"><span>-</span><input id="moveZ" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div>
       </section>
 
     </section>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <footer class="app-footer">Check3D <span>v1.1.5</span> <span class="footer-separator">·</span> Updated 1 Nov 2026</footer>
+    <footer class="app-footer">Check3D <span>v1.1.6</span> <span class="footer-separator">·</span> Updated 1 Nov 2026</footer>
   </main>
-  <script type="module" src="./js/app.js?v=20261101-13"></script>
+  <script type="module" src="./js/app.js?v=20261101-14"></script>
 </body>
 </html>
