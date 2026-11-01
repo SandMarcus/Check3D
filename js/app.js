@@ -24,31 +24,36 @@ $('fileInput').addEventListener('change', async (event) => {
 async function loadFile(file) {
   const supported = /\.(stl|3mf|obj|glb|gltf|ply)$/i.test(file.name);
   if (!supported) return toast('Unsupported file. Choose STL, 3MF, OBJ, GLB, GLTF or PLY.');
+
+  // Keep file parsing errors separate from UI updates. Once the viewer has
+  // loaded the model, a later interface issue must not report a false load error.
+  let info;
   try {
-    await viewer.load(file);
-    currentFile = file;
-    $('welcome').hidden = true;
-    $('welcome').classList.add('is-hidden');
-    $('modelHud').hidden = false;
-    $('modelName').textContent = file.name;
-    $('fileSize').textContent = formatBytes(file.size);
-    const info = viewer.getInfo();
-    $('triangleCount').textContent = info.triangles.toLocaleString();
-    $('dimX').textContent = `${info.size.x.toFixed(2)} mm`;
-    $('dimY').textContent = `${info.size.y.toFixed(2)} mm`;
-    $('dimZ').textContent = `${info.size.z.toFixed(2)} mm`;
-    $('modelSizeHud').textContent = `${info.size.x.toFixed(1)} × ${info.size.y.toFixed(1)} × ${info.size.z.toFixed(1)} mm`;
-    $('cutSlider').disabled = false;
-    $('centerCut').disabled = false;
-    $('invertCut').disabled = false;
-    $('cutSlider').value = 0;
-    viewer.setCut('z', 0, false);
-    updateCutOutput();
-    toast('3D model loaded successfully.');
+    info = await viewer.load(file);
   } catch (error) {
-    console.error(error);
-    toast('Could not read this 3D file. Check that the format is supported.');
+    console.error('3D model loading failed:', error);
+    toast('Could not load this 3D file. Check that the format is supported.');
+    return;
   }
+
+  currentFile = file;
+  $('welcome').hidden = true;
+  $('welcome').classList.add('is-hidden');
+  $('modelHud').hidden = false;
+  $('modelName').textContent = file.name;
+  $('fileSize').textContent = formatBytes(file.size);
+  $('triangleCount').textContent = info.triangles.toLocaleString();
+  $('dimX').textContent = `${info.size.x.toFixed(2)} mm`;
+  $('dimY').textContent = `${info.size.y.toFixed(2)} mm`;
+  $('dimZ').textContent = `${info.size.z.toFixed(2)} mm`;
+  $('modelSizeHud').textContent = `${info.size.x.toFixed(1)} × ${info.size.y.toFixed(1)} × ${info.size.z.toFixed(1)} mm`;
+  $('cutSlider').disabled = false;
+  $('centerCut').disabled = false;
+  $('invertCut').disabled = false;
+  $('cutSlider').value = 0;
+  viewer.setCut('z', 0, false);
+  updateCutOutput();
+  toast('3D model loaded successfully.');
 }
 function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;
