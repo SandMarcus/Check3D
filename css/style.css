@@ -92,3 +92,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .move-scale{display:grid;grid-template-columns:18px minmax(0,1fr) 18px;align-items:center;gap:8px;color:var(--muted);font-size:15px;font-weight:700}
 .move-slider{display:block;width:100%;min-width:0;height:34px;margin:4px 0;appearance:auto;-webkit-appearance:slider-horizontal;accent-color:var(--accent);touch-action:pan-y}
 @media(max-width:480px){.tool-tabs{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:1px}.tool-tab{font-size:10px;padding-left:1px;padding-right:1px}}
+
+
+/* v1.1.6: editable numeric controls for rotation and position */
+.value-input{width:88px;max-width:42%;min-width:72px;padding:5px 7px;background:var(--panel2);color:var(--accent);border:1px solid var(--line);border-radius:7px;text-align:right;font:inherit;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;}
+.value-input:focus{border-color:var(--accent);outline:2px solid #83b8ff35;}
+.rotation-axis>label,.move-axis>label{gap:12px;}
