@@ -111,6 +111,19 @@ export function createViewer(canvas, container) {
     throw new Error('Unsupported file format');
   }
 
+  function getInfo() {
+    if (!modelRoot || !bounds) return null;
+    const size = bounds.getSize(new THREE.Vector3());
+    let triangles = 0;
+    modelRoot.traverse(object => {
+      if (!object.isMesh || !object.geometry) return;
+      const geometry = object.geometry;
+      const count = geometry.index ? geometry.index.count : geometry.attributes.position?.count || 0;
+      triangles += Math.floor(count / 3);
+    });
+    return { size, triangles };
+  }
+
   async function load(file) {
     const buffer = await file.arrayBuffer();
     const loaded = await parseFile(file, buffer);
@@ -182,18 +195,7 @@ export function createViewer(canvas, container) {
   return {
     load,
     fit,
-    getInfo() {
-      if (!modelRoot || !bounds) return null;
-      const size = bounds.getSize(new THREE.Vector3());
-      let triangles = 0;
-      modelRoot.traverse(object => {
-        if (!object.isMesh || !object.geometry) return;
-        const geometry = object.geometry;
-        const count = geometry.index ? geometry.index.count : geometry.attributes.position?.count || 0;
-        triangles += Math.floor(count / 3);
-      });
-      return { size, triangles };
-    },
+    getInfo,
     setCut(axis, ratio, invert = false) {
       cutAxis = axis;
       cutRatio = Math.max(0, Math.min(1, ratio));
