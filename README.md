@@ -1,9 +1,17 @@
-# STL Viewer
+# Check3D
 
-A mobile-first, browser-based STL inspection tool for GitHub Pages.
+A mobile-first, browser-based 3D model inspection tool for GitHub Pages.
 
-## Features in this first version
-- Load binary and ASCII STL files locally in the browser
+## Supported formats
+- **STL** — binary and ASCII
+- **3MF** — 3D Manufacturing Format
+- **OBJ**
+- **GLB** — binary glTF, including embedded materials and textures
+- **GLTF** — self-contained files and embedded data URIs
+- **PLY**
+
+## Features
+- Load supported 3D files locally in the browser
 - Touch-friendly 3D orbit, pinch zoom and pan (Three.js OrbitControls)
 - X, Y and Z clipping-plane section cuts
 - Cut position slider, center cut and invert side
@@ -30,6 +38,7 @@ Then visit `http://localhost:8000`.
 
 ## Notes
 - Three.js is loaded from jsDelivr, so the published page needs an internet connection.
-- STL files are read locally in the browser and are not uploaded to GitHub or a server.
-- STL does not reliably contain unit metadata; this viewer assumes millimetres.
-- The current section cut is a visual clipping plane. It does not create a capped solid cross-section yet.
+- Files are read locally in the browser and are not uploaded to GitHub or a server.
+- A `.gltf` file that references separate external texture or buffer files may not load when selected alone. Use `.glb` for a portable model.
+- STL does not reliably contain unit metadata; this viewer assumes millimetres. Dimensions in other formats depend on the source model's units.
+- The section cut is a visual clipping plane. It does not create a capped solid cross-section yet.
