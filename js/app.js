@@ -32,7 +32,8 @@ async function loadFile(file) {
     info = await viewer.load(file);
   } catch (error) {
     console.error('3D model loading failed:', error);
-    const detail = error?.message || String(error);\n    toast(`Load error: ${detail.slice(0, 110)}`);
+    const detail = error?.message || String(error);
+    toast(`Load error: ${detail.slice(0, 110)}`);
     return;
   }
 
