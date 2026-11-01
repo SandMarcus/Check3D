@@ -203,70 +203,72 @@ document.querySelectorAll('.group-toggle').forEach(toggle => {
 });
 
 
-// Lightweight profile-based print estimator (not a G-code slicer).
-const defaultProfiles = {
-  draft: { label: 'Draft · 0.28 mm', layer: 0.28, speed: 65, wall: 0.22, overhead: 1.22 },
-  standard: { label: 'Standard · 0.20 mm', layer: 0.20, speed: 48, wall: 0.28, overhead: 1.35 },
-  fine: { label: 'Fine · 0.12 mm', layer: 0.12, speed: 34, wall: 0.34, overhead: 1.52 }
-};
-// Starter estimates for common printer families, not official slicer profiles.
-const printerProfiles = {
-  default: defaultProfiles,
-  'bambu-a1': {
-    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 140, wall: .22, overhead: 1.15 },
-    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 100, wall: .28, overhead: 1.25 },
-    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 65, wall: .34, overhead: 1.4 }
-  },
-  'bambu-p1': {
-    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 180, wall: .22, overhead: 1.12 },
-    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 130, wall: .28, overhead: 1.22 },
-    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 80, wall: .34, overhead: 1.36 }
-  },
-  'bambu-x1': {
-    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 180, wall: .22, overhead: 1.12 },
-    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 130, wall: .28, overhead: 1.22 },
-    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 80, wall: .34, overhead: 1.36 }
-  },
-  'bambu-x2': {
-    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 180, wall: .22, overhead: 1.1 },
-    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 135, wall: .28, overhead: 1.2 },
-    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 85, wall: .34, overhead: 1.34 }
-  },
-  'bambu-h': {
-    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 170, wall: .22, overhead: 1.1 },
-    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 125, wall: .28, overhead: 1.2 },
-    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 80, wall: .34, overhead: 1.34 }
-  },
-  'bambu-mini': {
-    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 110, wall: .22, overhead: 1.18 },
-    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 80, wall: .28, overhead: 1.3 },
-    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 50, wall: .34, overhead: 1.45 }
-  },
-  'prusa-mk4': {
-    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 75, wall: .22, overhead: 1.2 },
-    standard: { label: 'Quality · 0.20 mm', layer: .20, speed: 55, wall: .28, overhead: 1.32 },
-    fine: { label: 'Detail · 0.10 mm', layer: .10, speed: 38, wall: .34, overhead: 1.5 }
-  },
-  'ender-v3': {
-    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 90, wall: .22, overhead: 1.2 },
-    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 65, wall: .28, overhead: 1.32 },
-    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 42, wall: .34, overhead: 1.48 }
+// Profile catalogue sourced from OrcaSlicer vendor bundles.
+// These are slicer-bundled profiles; maintenance/approval varies by manufacturer.
+let printerCatalog = null;
+let selectedProcessProfile = null;
+const fallbackProfile = { name: 'Generic estimate · 0.20 mm', layerHeight: 0.20, wall: 0.28, overhead: 1.35 };
+async function loadPrinterCatalog() {
+  try {
+    const response = await fetch('./data/printer-catalog.json?v=20261101-18');
+    if (!response.ok) throw new Error('Catalogue request failed');
+    printerCatalog = await response.json();
+    const manufacturer = $('sliceManufacturer');
+    manufacturer.innerHTML = '<option value="">Choose manufacturer</option>' +
+      printerCatalog.vendors.map(v => '<option value="' + v.id + '">' + v.name + '</option>').join('');
+    $('slicePrinterNote').textContent = 'Choose a manufacturer and exact printer model. Profile names are taken from the OrcaSlicer bundled catalogue; not every profile is manufacturer-maintained.';
+  } catch (error) {
+    console.error('Printer profile catalogue failed to load:', error);
+    $('slicePrinterNote').textContent = 'Printer catalogue unavailable. Generic estimate is being used.';
+    $('sliceProfile').innerHTML = '<option value="generic">Generic estimate · 0.20 mm</option>';
   }
-};
-function activeProfiles() {
-  return printerProfiles[$('slicePrinter').value] || defaultProfiles;
+}
+function selectedVendor() {
+  return printerCatalog?.vendors.find(v => v.id === $('sliceManufacturer').value) || null;
+}
+function modelAlias(model, vendor) {
+  return model.replace(new RegExp('^' + vendor.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + '\\s+', 'i'), '').trim();
 }
 function updatePrinterProfiles() {
-  const profiles = activeProfiles();
-  const select = $('sliceProfile');
-  const selected = select.value;
-  select.innerHTML = Object.entries(profiles).map(([key, profile]) =>
-    '<option value="' + key + '">' + profile.label + '</option>'
-  ).join('');
-  select.value = profiles[selected] ? selected : 'standard';
-  $('slicePrinterNote').textContent = $('slicePrinter').value === 'default'
-    ? 'Using generic default profiles. Select a printer to use its starter speed and layer presets.'
-    : 'Using Check3D starter estimates for this printer family. These are not official manufacturer profiles; tune against your actual slicer settings.';
+  const vendor = selectedVendor();
+  const modelSelect = $('slicePrinter');
+  const previousModel = modelSelect.value;
+  modelSelect.innerHTML = '<option value="">Choose printer model</option>' +
+    (vendor ? vendor.models.map((m,i) => '<option value="' + i + '">' + m + '</option>').join('') : '');
+  if (vendor && previousModel && Number(previousModel) < vendor.models.length) modelSelect.value = previousModel;
+  updateProcessProfiles();
+}
+function updateProcessProfiles() {
+  const vendor = selectedVendor();
+  const modelSelect = $('slicePrinter');
+  const profileSelect = $('sliceProfile');
+  const model = vendor && modelSelect.value !== '' ? vendor.models[Number(modelSelect.value)] : '';
+  const alias = model && vendor ? modelAlias(model, vendor.name).toLowerCase() : '';
+  let profiles = vendor && model ? vendor.processes.filter(p => p.name.toLowerCase().includes(alias)) : [];
+  // If no exact model-targeted presets are bundled, do not offer another model's settings.
+  selectedProcessProfile = null;
+  if (!profiles.length) {
+    profileSelect.innerHTML = '<option value="generic">Generic estimate · 0.20 mm</option>';
+    profileSelect.value = 'generic';
+    $('slicePrinterNote').textContent = model
+      ? 'No model-specific process presets were found in this catalogue entry. Using a generic estimate instead.'
+      : 'Choose a manufacturer and exact printer model. Profile names are taken from the OrcaSlicer bundled catalogue; not every profile is manufacturer-maintained.';
+    return;
+  }
+  profileSelect.innerHTML = profiles.map((p,i) => '<option value="' + i + '">' + p.name + '</option>').join('');
+  selectedProcessProfile = profiles[0];
+  profileSelect.value = '0';
+  $('slicePrinterNote').textContent = vendor.name + ' · ' + model + '. Process preset names are sourced from the OrcaSlicer bundle. The estimator uses the preset layer height; it does not execute the full slicer profile.';
+}
+function activeProfile() {
+  const vendor = selectedVendor();
+  const modelSelect = $('slicePrinter');
+  const model = vendor && modelSelect.value !== '' ? vendor.models[Number(modelSelect.value)] : '';
+  const alias = model && vendor ? modelAlias(model, vendor.name).toLowerCase() : '';
+  const profiles = vendor && model ? vendor.processes.filter(p => p.name.toLowerCase().includes(alias)) : [];
+  const chosen = profiles[Number($('sliceProfile').value)];
+  const layer = chosen?.layerHeight || fallbackProfile.layerHeight;
+  return { name: chosen?.name || fallbackProfile.name, layer, wall: .28, overhead: 1.35 };
 }
 const materials = {
   pla: { density: 1.24, flow: 8.5 },
@@ -280,7 +282,7 @@ function estimatePrint() {
     toast('Could not calculate mesh volume. Check that the model is a closed solid.');
     return;
   }
-  const profile = activeProfiles()[$('sliceProfile').value];
+  const profile = activeProfile();
   const material = materials[$('sliceMaterial').value];
   const infill = Number($('sliceInfill').value) / 100;
   const height = modelInfo.size.z;
@@ -297,7 +299,7 @@ function estimatePrint() {
   $('sliceLength').textContent = (filamentMm / 1000).toFixed(2) + ' m of 1.75 mm filament';
   $('sliceTime').textContent = formatDuration(timeMinutes);
   $('sliceLayers').textContent = layers.toLocaleString() + ' layers';
-  $('sliceNote').textContent = 'Approximate estimate from mesh volume, profile and infill. Assumes 1.75 mm filament, 0.4 mm nozzle and typical wall/support behaviour; actual results vary by printer, supports and slicer settings.';
+  $('sliceNote').textContent = 'Planning estimate only. Uses the selected preset name and layer height, but does not import or execute all printer, filament, speed, support, wall or G-code settings. Assumes 1.75 mm filament and 0.4 mm nozzle; actual results can differ substantially.';
 }
 function formatDuration(minutes) {
   const total = Math.max(1, Math.round(minutes));
@@ -318,12 +320,16 @@ $('sliceInfill').addEventListener('input', () => {
   $('infillLabel').textContent = $('sliceInfill').value + '%';
   if (!$('sliceModal').hidden) estimatePrint();
 });
-$('slicePrinter').addEventListener('change', () => {
+$('sliceManufacturer').addEventListener('change', () => {
   updatePrinterProfiles();
+  if (!$('sliceModal').hidden) estimatePrint();
+});
+$('slicePrinter').addEventListener('change', () => {
+  updateProcessProfiles();
   if (!$('sliceModal').hidden) estimatePrint();
 });
 ['sliceProfile','sliceMaterial'].forEach(id => $(id).addEventListener('change', () => {
   if (!$('sliceModal').hidden) estimatePrint();
 }));
 $('recalculateSlice').addEventListener('click', estimatePrint);
-updatePrinterProfiles();
+loadPrinterCatalog();
