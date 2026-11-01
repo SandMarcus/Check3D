@@ -45,6 +45,7 @@ export function createViewer(canvas, container) {
   let modelPivot = null;
   let displayMode = 'solid';
   let backgroundMode = 'dark';
+  const modelRotation = { x: 0, y: 0, z: 0 };
 
   function resize() {
     const rect = container.getBoundingClientRect();
@@ -255,15 +256,21 @@ export function createViewer(canvas, container) {
       scene.background = new THREE.Color(colors[mode] ?? colors.dark);
       grid.visible = grid.visible;
     },
-    rotateModel(axis, degrees) {
-      if (!modelPivot) return;
-      modelPivot.rotation[axis] += THREE.MathUtils.degToRad(degrees);
+    setModelRotation(axis, degrees) {
+      if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return;
+      modelRotation[axis] = THREE.MathUtils.clamp(degrees, -180, 180);
+      modelPivot.rotation.set(
+        THREE.MathUtils.degToRad(modelRotation.x),
+        THREE.MathUtils.degToRad(modelRotation.y),
+        THREE.MathUtils.degToRad(modelRotation.z)
+      );
       modelPivot.updateMatrixWorld(true);
       bounds = new THREE.Box3().setFromObject(modelPivot);
       applyCut();
     },
     resetModelRotation() {
       if (!modelPivot) return;
+      modelRotation.x = modelRotation.y = modelRotation.z = 0;
       modelPivot.rotation.set(0, 0, 0);
       modelPivot.updateMatrixWorld(true);
       bounds = new THREE.Box3().setFromObject(modelPivot);
