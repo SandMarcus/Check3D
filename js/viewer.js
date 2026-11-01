@@ -14,6 +14,7 @@ export function createViewer(canvas, container) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 1000000);
+  camera.up.set(0, 0, 1);
   camera.position.set(150, 130, 150);
   const controls = new OrbitControls(camera, canvas);
   controls.enableDamping = true;
@@ -31,7 +32,8 @@ export function createViewer(canvas, container) {
   scene.add(fill);
 
   const grid = new THREE.GridHelper(200, 40, 0x667080, 0x303641);
-  grid.position.y = -0.01;
+  grid.rotation.x = Math.PI / 2;
+  grid.position.z = -0.01;
   scene.add(grid);
 
   let modelRoot = null;
@@ -167,7 +169,7 @@ export function createViewer(canvas, container) {
     const size = bounds.getSize(new THREE.Vector3());
     const modelCenter = bounds.getCenter(new THREE.Vector3());
     grid.scale.setScalar(Math.max(size.length() / 200, 0.01));
-    grid.position.set(modelCenter.x, bounds.min.y, modelCenter.z);
+    grid.position.set(modelCenter.x, modelCenter.y, bounds.min.z);
     applyCut();
     return getInfo();
   }
@@ -279,8 +281,8 @@ export function createViewer(canvas, container) {
       const center = bounds.getCenter(new THREE.Vector3());
       const size = bounds.getSize(new THREE.Vector3());
       const d = Math.max(size.x, size.y, size.z, 1) * 2.2;
-      if (view === 'front') camera.position.set(center.x, center.y, center.z + d);
-      if (view === 'top') camera.position.set(center.x, center.y + d, center.z);
+      if (view === 'front') camera.position.set(center.x, center.y - d, center.z);
+      if (view === 'top') camera.position.set(center.x, center.y, center.z + d);
       if (view === 'side') camera.position.set(center.x + d, center.y, center.z);
       controls.target.copy(center);
       controls.update();
