@@ -38,3 +38,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 [hidden]{display:none!important}
 @media(min-width:900px){.workspace{display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:minmax(500px,calc(100dvh - 62px));padding:14px;gap:12px}.viewport{height:auto;min-height:500px;border:1px solid var(--line);border-radius:14px;grid-row:1 / span 2}.tool-tabs{grid-column:2;grid-row:1;align-self:start;padding:0;gap:5px}.control-panel{grid-column:2;grid-row:1;align-self:start;margin-top:54px;border:1px solid var(--line);border-radius:14px;max-width:none;padding:16px}.control-panel[hidden]{display:none}.tool-tabs{z-index:1}.viewport-hint{bottom:18px}}
 @media(max-width:480px){.topbar{height:56px;padding:0 13px}.desktop-label{display:none}.viewport{height:53vh;min-height:300px;max-height:560px}.control-panel{padding:14px 14px 20px}.tool-tabs{padding-left:9px;padding-right:9px}.view-cube{right:8px;top:8px}.view-cube button{padding:5px 8px}.viewport-hint{font-size:10px;bottom:8px}.welcome h1{font-size:22px}}
+
+/* Ensure the welcome overlay stays hidden after an STL is loaded. */
+.welcome.is-hidden{display:none!important;visibility:hidden!important;pointer-events:none!important}
