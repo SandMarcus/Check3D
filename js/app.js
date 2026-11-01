@@ -232,7 +232,7 @@ function estimatePrint() {
   const grams = printedVolume / 1000 * material.density;
   const filamentMm = printedVolume / (Math.PI * Math.pow(1.75 / 2, 2));
   const layers = Math.max(1, Math.ceil(height / profile.layer));
-  const extrusionMinutes = printedVolume / material.flow;
+  const extrusionMinutes = printedVolume / material.flow / 60;
   const timeMinutes = (extrusionMinutes * profile.overhead + layers * 0.16) * (materials[$('sliceMaterial').value] === materials.tpu ? 1.25 : 1);
   $('sliceGrams').textContent = grams < 10 ? grams.toFixed(1) + ' g' : Math.round(grams) + ' g';
   $('sliceLength').textContent = (filamentMm / 1000).toFixed(2) + ' m of 1.75 mm filament';
