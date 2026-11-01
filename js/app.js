@@ -38,6 +38,15 @@ async function loadFile(file) {
   }
 
   currentFile = file;
+  viewer.resetModelPosition();
+  resetMoveControls();
+  const moveLimit = Math.max(info.size.x, info.size.y, info.size.z, 1) * 2;
+  ['x','y','z'].forEach(axis => {
+    const slider = $('move' + axis.toUpperCase());
+    slider.min = -moveLimit;
+    slider.max = moveLimit;
+    slider.step = Math.max(moveLimit / 2000, 0.01);
+  });
   $('welcome').hidden = true;
   $('welcome').classList.add('is-hidden');
   $('modelHud').hidden = false;
@@ -56,6 +65,25 @@ async function loadFile(file) {
   updateCutOutput();
   toast('3D model loaded successfully.');
 }
+function resetMoveControls() {
+  ['x','y','z'].forEach(axis => {
+    $('move' + axis.toUpperCase()).value = 0;
+    $('move' + axis.toUpperCase() + 'Value').textContent = '0 mm';
+  });
+}
+['x','y','z'].forEach(axis => {
+  const slider = $('move' + axis.toUpperCase());
+  slider.addEventListener('input', () => {
+    const value = Number(slider.value);
+    $('move' + axis.toUpperCase() + 'Value').textContent = value.toFixed(1) + ' mm';
+    viewer.setModelPosition(axis, value);
+  });
+});
+$('resetMove').addEventListener('click', () => {
+  viewer.resetModelPosition();
+  resetMoveControls();
+});
+
 function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -136,7 +164,7 @@ document.querySelectorAll('[data-view], [data-camera]').forEach(button => button
 
 document.querySelectorAll('.tool-tab').forEach(tab => tab.addEventListener('click', () => {
   document.querySelectorAll('.tool-tab').forEach(t => t.classList.toggle('active', t === tab));
-  ['cutPanel', 'infoPanel', 'viewPanel', 'rotationPanel'].forEach(id => $(id).hidden = id !== tab.dataset.panel);
+  ['cutPanel', 'infoPanel', 'viewPanel', 'rotationPanel', 'movePanel'].forEach(id => $(id).hidden = id !== tab.dataset.panel);
 }));
 
 // Drag-and-drop is available on desktop; mobile users use the native file picker.
