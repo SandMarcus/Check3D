@@ -227,6 +227,21 @@ const printerProfiles = {
     standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 130, wall: .28, overhead: 1.22 },
     fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 80, wall: .34, overhead: 1.36 }
   },
+  'bambu-x2': {
+    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 180, wall: .22, overhead: 1.1 },
+    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 135, wall: .28, overhead: 1.2 },
+    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 85, wall: .34, overhead: 1.34 }
+  },
+  'bambu-h': {
+    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 170, wall: .22, overhead: 1.1 },
+    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 125, wall: .28, overhead: 1.2 },
+    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 80, wall: .34, overhead: 1.34 }
+  },
+  'bambu-mini': {
+    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 110, wall: .22, overhead: 1.18 },
+    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 80, wall: .28, overhead: 1.3 },
+    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 50, wall: .34, overhead: 1.45 }
+  },
   'prusa-mk4': {
     draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 75, wall: .22, overhead: 1.2 },
     standard: { label: 'Quality · 0.20 mm', layer: .20, speed: 55, wall: .28, overhead: 1.32 },
