@@ -149,7 +149,7 @@ export function createViewer(canvas, container) {
   }
 
   function fit() {
-    if (!modelRoot == null || !bounds) return;
+    if (!modelRoot || !bounds) return;
     const size = bounds.getSize(new THREE.Vector3());
     const center = bounds.getCenter(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z, 1);
