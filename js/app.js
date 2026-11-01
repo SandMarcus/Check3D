@@ -27,6 +27,7 @@ async function loadFile(file) {
     await viewer.load(file);
     currentFile = file;
     $('welcome').hidden = true;
+    $('welcome').classList.add('is-hidden');
     $('modelHud').hidden = false;
     $('modelName').textContent = file.name;
     $('fileSize').textContent = formatBytes(file.size);
