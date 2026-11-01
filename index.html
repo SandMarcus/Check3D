@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111318">
   <title>Check3D</title>
-  <link rel="stylesheet" href="./css/style.css?v=20261101-17">
+  <link rel="stylesheet" href="./css/style.css?v=20261101-18">
   <script type="importmap">
     {
       "imports": {
@@ -125,8 +125,9 @@
       <div class="slice-dialog">
         <div class="panel-heading"><div><h2 id="sliceTitle">Print estimate</h2><p>Approximate filament use and print time.</p></div><button class="text-button" id="closeSlice" aria-label="Close">✕</button></div>
         <div class="slice-fields">
-          <label>Printer (optional)<select id="slicePrinter"><option value="default">No printer · Generic defaults</option><option value="bambu-a1">Bambu Lab A1</option><option value="bambu-p1">Bambu Lab P1 series</option><option value="bambu-x1">Bambu Lab X1 series</option><option value="bambu-x2">Bambu Lab X2 series (X2D)</option><option value="bambu-h">Bambu Lab H series (H2S / H2D / H2C)</option><option value="bambu-mini">Bambu Lab A1 mini</option><option value="prusa-mk4">Original Prusa MK4 / MK4S</option><option value="ender-v3">Creality Ender-3 V3</option></select></label>
-          <label>Print profile<select id="sliceProfile"><option value="draft">Draft · 0.28 mm</option><option value="standard" selected>Standard · 0.20 mm</option><option value="fine">Fine · 0.12 mm</option></select></label>
+          <label>Manufacturer<select id="sliceManufacturer"><option value="">Loading manufacturers…</option></select></label>
+          <label>Printer model<select id="slicePrinter"><option value="">Choose printer model</option></select></label>
+          <label>Process profile<select id="sliceProfile"><option value="generic">Generic estimate · 0.20 mm</option></select></label>
           <label>Material<select id="sliceMaterial"><option value="pla">PLA</option><option value="petg">PETG</option><option value="abs">ABS</option><option value="asa">ASA</option><option value="tpu">TPU</option></select></label>
           <label>Infill <span id="infillLabel">15%</span><input id="sliceInfill" type="range" min="0" max="100" step="5" value="15"></label>
         </div>
@@ -140,8 +141,8 @@
       </div>
     </section>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <footer class="app-footer">Check3D <span>v1.1.9</span> <span class="footer-separator">·</span> Updated 1 Nov 2026</footer>
+    <footer class="app-footer">Check3D <span>v1.2.0</span> <span class="footer-separator">·</span> Updated 1 Nov 2026</footer>
   </main>
-  <script type="module" src="./js/app.js?v=20261101-17"></script>
+  <script type="module" src="./js/app.js?v=20261101-18"></script>
 </body>
 </html>
