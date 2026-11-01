@@ -2829,6 +2829,18 @@
           "layerHeight": 0.35
         },
         {
+          "name": "process_detail_MK3.5",
+          "layerHeight": null
+        },
+        {
+          "name": "process_highflow_MK3.5",
+          "layerHeight": null
+        },
+        {
+          "name": "process_speed_MK3.5",
+          "layerHeight": null
+        },
+        {
           "name": "0.15mm Standard @MINIIS 0.6",
           "layerHeight": 0.15
         },
@@ -2851,6 +2863,18 @@
         {
           "name": "0.35mm Standard @MINIIS",
           "layerHeight": 0.35
+        },
+        {
+          "name": "process_detail_miniis",
+          "layerHeight": null
+        },
+        {
+          "name": "process_highflow_miniis",
+          "layerHeight": null
+        },
+        {
+          "name": "process_speed_miniis",
+          "layerHeight": null
         },
         {
           "name": "0.08mm Standard @MK4",
@@ -7153,7 +7177,428 @@
         "Snapmaker J1",
         "Snapmaker U1"
       ],
-      "processes": []
+      "processes": [
+        {
+          "name": "0.25 Benchy @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.06 Standard @Snapmaker (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.08 Extra Fine @Snapmaker (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.10 Standard @Snapmaker (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.12 Fine @Snapmaker (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.14 Standard @Snapmaker (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.16 Optimal @Snapmaker (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.18 Standard @Snapmaker (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Standard @Snapmaker (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Strength @Snapmaker (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Draft @Snapmaker (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Standard @Snapmaker (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Standard @Snapmaker (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.28 Extra Draft @Snapmaker (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.30 Standard @Snapmaker (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.30 Strength @Snapmaker (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.32 Standard @Snapmaker (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.34 Standard @Snapmaker (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.36 Standard @Snapmaker (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.38 Standard @Snapmaker (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.40 Standard @Snapmaker (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.42 Draft @Snapmaker (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.48 Draft @Snapmaker (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.08 Extra Fine @Snapmaker Artisan (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.10 Standard @Snapmaker Artisan (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.12 Fine @Snapmaker Artisan (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.14 Standard @Snapmaker Artisan (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.16 Optimal @Snapmaker Artisan (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.18 Standard @Snapmaker Artisan (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Standard @Snapmaker Artisan (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Strength @Snapmaker Artisan (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Draft @Snapmaker Artisan (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Standard @Snapmaker Artisan (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Standard @Snapmaker Artisan (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.25 Benchy @Snapmaker Artisan (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.28 Extra Draft @Snapmaker Artisan (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.30 Standard @Snapmaker Artisan (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.30 Strength @Snapmaker Artisan (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.32 Standard @Snapmaker Artisan (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.34 Standard @Snapmaker Artisan (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.36 Standard @Snapmaker Artisan (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.38 Standard @Snapmaker Artisan (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.40 Standard @Snapmaker Artisan (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.42 Draft @Snapmaker Artisan (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.48 Draft @Snapmaker Artisan (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.06 Standard @Snapmaker J1 (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.08 Extra Fine @Snapmaker J1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.10 Standard @Snapmaker J1 (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.12 Fine @Snapmaker J1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.14 Standard @Snapmaker J1 (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.16 Optimal @Snapmaker J1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.18 Standard @Snapmaker J1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Standard @Snapmaker J1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Strength @Snapmaker J1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Draft @Snapmaker J1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Standard @Snapmaker J1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Standard @Snapmaker J1 (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.25 Benchy @Snapmaker J1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.28 Extra Draft @Snapmaker J1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.30 Standard @Snapmaker J1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.30 Strength @Snapmaker J1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.32 Standard @Snapmaker J1 (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.34 Standard @Snapmaker J1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.36 Standard @Snapmaker J1 (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.38 Standard @Snapmaker J1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.40 Standard @Snapmaker J1 (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.42 Draft @Snapmaker J1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.48 Draft @Snapmaker J1 (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.06 High Quality @Snapmaker U1 (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.06 Standard @Snapmaker U1 (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.08 Extra Fine @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.08 High Quality @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.08 High Quality @Snapmaker U1 (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.08 Standard @Snapmaker U1 (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.10 High Quality @Snapmaker U1 (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.10 Standard @Snapmaker U1 (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.12 Fine @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.12 High Quality @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.12 Standard @Snapmaker U1 (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.14 Standard @Snapmaker U1 (0.2 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.16 High Quality @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.16 Optimal @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.18 Standard @Snapmaker U1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Quality @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Standard @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Standard @Snapmaker U1 (0.4+0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Strength @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Support @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Support W @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Draft @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Standard @Snapmaker U1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.24 Standard @Snapmaker U1 (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.28 Extra Draft @Snapmaker U1 (0.4 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.30 Standard @Snapmaker U1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.30 Strength @Snapmaker U1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.32 Standard @Snapmaker U1 (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.36 Standard @Snapmaker U1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.40 Standard @Snapmaker U1 (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.42 Standard @Snapmaker U1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.48 Standard @Snapmaker U1 (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.56 Standard @Snapmaker U1 (0.8 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.20 Standard @Snapmaker U1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.30 Draft @Snapmaker U1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.40 Extra Draft @Snapmaker U1 (0.6 nozzle)",
+          "layerHeight": null
+        },
+        {
+          "name": "0.06 Standard @Snapmaker Artisan (0.2 nozzle)",
+          "layerHeight": null
+        }
+      ]
     },
     {
       "name": "UltiMaker",
