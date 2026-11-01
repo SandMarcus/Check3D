@@ -204,11 +204,55 @@ document.querySelectorAll('.group-toggle').forEach(toggle => {
 
 
 // Lightweight profile-based print estimator (not a G-code slicer).
-const sliceProfiles = {
-  draft: { layer: 0.28, speed: 65, wall: 0.22, overhead: 1.22 },
-  standard: { layer: 0.20, speed: 48, wall: 0.28, overhead: 1.35 },
-  fine: { layer: 0.12, speed: 34, wall: 0.34, overhead: 1.52 }
+const defaultProfiles = {
+  draft: { label: 'Draft · 0.28 mm', layer: 0.28, speed: 65, wall: 0.22, overhead: 1.22 },
+  standard: { label: 'Standard · 0.20 mm', layer: 0.20, speed: 48, wall: 0.28, overhead: 1.35 },
+  fine: { label: 'Fine · 0.12 mm', layer: 0.12, speed: 34, wall: 0.34, overhead: 1.52 }
 };
+// Starter estimates for common printer families, not official slicer profiles.
+const printerProfiles = {
+  default: defaultProfiles,
+  'bambu-a1': {
+    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 140, wall: .22, overhead: 1.15 },
+    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 100, wall: .28, overhead: 1.25 },
+    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 65, wall: .34, overhead: 1.4 }
+  },
+  'bambu-p1': {
+    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 180, wall: .22, overhead: 1.12 },
+    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 130, wall: .28, overhead: 1.22 },
+    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 80, wall: .34, overhead: 1.36 }
+  },
+  'bambu-x1': {
+    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 180, wall: .22, overhead: 1.12 },
+    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 130, wall: .28, overhead: 1.22 },
+    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 80, wall: .34, overhead: 1.36 }
+  },
+  'prusa-mk4': {
+    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 75, wall: .22, overhead: 1.2 },
+    standard: { label: 'Quality · 0.20 mm', layer: .20, speed: 55, wall: .28, overhead: 1.32 },
+    fine: { label: 'Detail · 0.10 mm', layer: .10, speed: 38, wall: .34, overhead: 1.5 }
+  },
+  'ender-v3': {
+    draft: { label: 'Draft · 0.28 mm', layer: .28, speed: 90, wall: .22, overhead: 1.2 },
+    standard: { label: 'Standard · 0.20 mm', layer: .20, speed: 65, wall: .28, overhead: 1.32 },
+    fine: { label: 'Fine · 0.12 mm', layer: .12, speed: 42, wall: .34, overhead: 1.48 }
+  }
+};
+function activeProfiles() {
+  return printerProfiles[$('slicePrinter').value] || defaultProfiles;
+}
+function updatePrinterProfiles() {
+  const profiles = activeProfiles();
+  const select = $('sliceProfile');
+  const selected = select.value;
+  select.innerHTML = Object.entries(profiles).map(([key, profile]) =>
+    '<option value="' + key + '">' + profile.label + '</option>'
+  ).join('');
+  select.value = profiles[selected] ? selected : 'standard';
+  $('slicePrinterNote').textContent = $('slicePrinter').value === 'default'
+    ? 'Using generic default profiles. Select a printer to use its starter speed and layer presets.'
+    : 'Using Check3D starter estimates for this printer family. These are not official manufacturer profiles; tune against your actual slicer settings.';
+}
 const materials = {
   pla: { density: 1.24, flow: 8.5 },
   petg: { density: 1.27, flow: 7.5 },
@@ -221,7 +265,7 @@ function estimatePrint() {
     toast('Could not calculate mesh volume. Check that the model is a closed solid.');
     return;
   }
-  const profile = sliceProfiles[$('sliceProfile').value];
+  const profile = activeProfiles()[$('sliceProfile').value];
   const material = materials[$('sliceMaterial').value];
   const infill = Number($('sliceInfill').value) / 100;
   const height = modelInfo.size.z;
@@ -259,7 +303,12 @@ $('sliceInfill').addEventListener('input', () => {
   $('infillLabel').textContent = $('sliceInfill').value + '%';
   if (!$('sliceModal').hidden) estimatePrint();
 });
+$('slicePrinter').addEventListener('change', () => {
+  updatePrinterProfiles();
+  if (!$('sliceModal').hidden) estimatePrint();
+});
 ['sliceProfile','sliceMaterial'].forEach(id => $(id).addEventListener('change', () => {
   if (!$('sliceModal').hidden) estimatePrint();
 }));
 $('recalculateSlice').addEventListener('click', estimatePrint);
+updatePrinterProfiles();
