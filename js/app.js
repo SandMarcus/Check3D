@@ -3,6 +3,7 @@ import { createViewer } from './viewer.js?v=20261101-12';
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
 let currentFile = null;
+let modelInfo = null;
 let toastTimer;
 
 function toast(message) {
@@ -38,6 +39,7 @@ async function loadFile(file) {
   }
 
   currentFile = file;
+  modelInfo = info;
   viewer.resetModelPosition();
   resetMoveControls();
   const moveLimit = Math.max(info.size.x, info.size.y, info.size.z, 1) * 2;
@@ -199,3 +201,65 @@ document.querySelectorAll('.group-toggle').forEach(toggle => {
     $(toggle.getAttribute('aria-controls')).hidden = expanded;
   });
 });
+
+
+// Lightweight profile-based print estimator (not a G-code slicer).
+const sliceProfiles = {
+  draft: { layer: 0.28, speed: 65, wall: 0.22, overhead: 1.22 },
+  standard: { layer: 0.20, speed: 48, wall: 0.28, overhead: 1.35 },
+  fine: { layer: 0.12, speed: 34, wall: 0.34, overhead: 1.52 }
+};
+const materials = {
+  pla: { density: 1.24, flow: 8.5 },
+  petg: { density: 1.27, flow: 7.5 },
+  abs: { density: 1.04, flow: 9 },
+  asa: { density: 1.07, flow: 8.5 },
+  tpu: { density: 1.21, flow: 3.5 }
+};
+function estimatePrint() {
+  if (!modelInfo?.volume || modelInfo.volume <= 0) {
+    toast('Could not calculate mesh volume. Check that the model is a closed solid.');
+    return;
+  }
+  const profile = sliceProfiles[$('sliceProfile').value];
+  const material = materials[$('sliceMaterial').value];
+  const infill = Number($('sliceInfill').value) / 100;
+  const height = modelInfo.size.z;
+  // Surface shell plus an approximate infill contribution. Open/non-manifold meshes
+  // can make volume estimates inaccurate; this is deliberately a planning estimate.
+  const materialFactor = Math.min(1, Math.max(0.12, profile.wall + infill * (1 - profile.wall) * 0.72));
+  const printedVolume = modelInfo.volume * materialFactor;
+  const grams = printedVolume / 1000 * material.density;
+  const filamentMm = printedVolume / (Math.PI * Math.pow(1.75 / 2, 2));
+  const layers = Math.max(1, Math.ceil(height / profile.layer));
+  const extrusionMinutes = printedVolume / material.flow;
+  const timeMinutes = (extrusionMinutes * profile.overhead + layers * 0.16) * (materials[$('sliceMaterial').value] === materials.tpu ? 1.25 : 1);
+  $('sliceGrams').textContent = grams < 10 ? grams.toFixed(1) + ' g' : Math.round(grams) + ' g';
+  $('sliceLength').textContent = (filamentMm / 1000).toFixed(2) + ' m of 1.75 mm filament';
+  $('sliceTime').textContent = formatDuration(timeMinutes);
+  $('sliceLayers').textContent = layers.toLocaleString() + ' layers';
+  $('sliceNote').textContent = 'Approximate estimate from mesh volume, profile and infill. Assumes 1.75 mm filament, 0.4 mm nozzle and typical wall/support behaviour; actual results vary by printer, supports and slicer settings.';
+}
+function formatDuration(minutes) {
+  const total = Math.max(1, Math.round(minutes));
+  const hours = Math.floor(total / 60), mins = total % 60;
+  return hours ? hours + ' h ' + mins + ' min' : mins + ' min';
+}
+function openSlice() {
+  if (!currentFile) { toast('Open a 3D model first.'); return; }
+  $('sliceModal').hidden = false;
+  estimatePrint();
+}
+$('sliceButton').addEventListener('click', openSlice);
+$('closeSlice').addEventListener('click', () => $('sliceModal').hidden = true);
+$('sliceModal').addEventListener('click', event => {
+  if (event.target === $('sliceModal')) $('sliceModal').hidden = true;
+});
+$('sliceInfill').addEventListener('input', () => {
+  $('infillLabel').textContent = $('sliceInfill').value + '%';
+  if (!$('sliceModal').hidden) estimatePrint();
+});
+['sliceProfile','sliceMaterial'].forEach(id => $(id).addEventListener('change', () => {
+  if (!$('sliceModal').hidden) estimatePrint();
+}));
+$('recalculateSlice').addEventListener('click', estimatePrint);
