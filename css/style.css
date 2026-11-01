@@ -80,3 +80,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #rotationPanel input.rotation-slider{display:block!important;visibility:visible!important;opacity:1!important;width:100%;min-width:0;height:34px;appearance:auto;-webkit-appearance:slider-horizontal;accent-color:var(--accent)}
 @media(min-width:900px){.tool-tabs{grid-column:2;grid-row:1}.control-panel{grid-column:2;grid-row:1}}
 @media(max-width:480px){.tool-tabs{grid-template-columns:repeat(4,minmax(0,1fr))!important}.tool-tab{font-size:11px;padding-left:1px;padding-right:1px}}
+
+
+/* v1.1.4 Move tab */
+.tool-tabs{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+.tool-tab{width:100%;min-width:0;white-space:nowrap}
+#movePanel:not([hidden]){display:block!important}
+.move-axis{display:block;width:100%;margin:20px 0 24px}
+.move-axis>label{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700}
+.move-axis output{color:var(--accent);font-variant-numeric:tabular-nums;font-weight:600}
+.move-scale{display:grid;grid-template-columns:18px minmax(0,1fr) 18px;align-items:center;gap:8px;color:var(--muted);font-size:15px;font-weight:700}
+.move-slider{display:block;width:100%;min-width:0;height:34px;margin:4px 0;appearance:auto;-webkit-appearance:slider-horizontal;accent-color:var(--accent);touch-action:pan-y}
+@media(max-width:480px){.tool-tabs{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:1px}.tool-tab{font-size:10px;padding-left:1px;padding-right:1px}}
