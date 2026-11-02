@@ -232,8 +232,6 @@ export function createViewer(canvas, container) {
     disposeCap();
     if (!modelRoot || !cutPlane || !bounds) return;
     const axis = cutAxis, axisIndex = { x: 0, y: 1, z: 2 }[axis];
-    // The clipping plane's constant changes sign with its normal. Use the actual
-    // model-space cut coordinate so the cap sits exactly on the visible section.
     const lo = bounds.min.getComponent(axisIndex), hi = bounds.max.getComponent(axisIndex);
     const planeValue = lo + (hi - lo) * cutRatio;
     const segments = [], p = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
@@ -263,6 +261,7 @@ export function createViewer(canvas, container) {
     });
     if (!segments.length) return;
 
+    // Join the triangle/plane intersection segments into closed section contours.
     const loops = [], unused = segments.slice();
     while (unused.length) {
       const first = unused.pop(), loop = [first[0], first[1]];
@@ -282,7 +281,11 @@ export function createViewer(canvas, container) {
 
     const projected = loops.map(loop => loop.map(point => projectPoint(point, axis)));
     const areas = projected.map(loop => {
-      let area = 0; for (let i = 0; i < loop.length; i++) { const a = loop[i], b = loop[(i + 1) % loop.length]; area += a.u * b.v - b.u * a.v; }
+      let area = 0;
+      for (let i = 0; i < loop.length; i++) {
+        const a = loop[i], b = loop[(i + 1) % loop.length];
+        area += a.u * b.v - b.u * a.v;
+      }
       return area * 0.5;
     });
     const pointInLoop = (point, loop) => {
@@ -294,32 +297,59 @@ export function createViewer(canvas, container) {
       return inside;
     };
 
-    // Build a filled section for every outer contour. Nested contours are treated
-    // as holes, preserving genuine cavities in a CAD solid instead of making the
-    // entire section look like a thin shell.
-    const capMeshes = [], used = new Set();
+    // Determine true nesting depth. A simple "any enclosing loop = hole" rule
+    // breaks nested solids/cavities and can turn a solid CAD section into a shell.
+    // Even nesting depth is material; odd depth is a cavity.
+    const parent = new Array(projected.length).fill(-1);
     for (let i = 0; i < projected.length; i++) {
-      if (used.has(i) || Math.abs(areas[i]) < eps * eps) continue;
-      const contour = projected[i], holes = [];
+      const point = projected[i][0];
+      let best = -1, bestArea = Infinity;
       for (let j = 0; j < projected.length; j++) {
-        if (i === j || used.has(j) || Math.abs(areas[j]) < eps * eps) continue;
-        if (pointInLoop(projected[j][0], contour)) { holes.push(projected[j]); used.add(j); }
+        if (i === j || Math.abs(areas[j]) <= Math.abs(areas[i])) continue;
+        if (pointInLoop(point, projected[j])) {
+          const area = Math.abs(areas[j]);
+          if (area < bestArea) { best = j; bestArea = area; }
+        }
       }
-      used.add(i);
-      const triangles = THREE.ShapeUtils.triangulateShape(contour, holes);
+      parent[i] = best;
+    }
+    const depth = new Array(projected.length).fill(0);
+    for (let i = 0; i < projected.length; i++) {
+      let current = parent[i], guard = 0;
+      while (current >= 0 && guard++ < projected.length) { depth[i]++; current = parent[current]; }
+    }
+
+    const capMeshes = [];
+    for (let i = 0; i < projected.length; i++) {
+      if (Math.abs(areas[i]) < eps * eps || depth[i] % 2 !== 0) continue;
+
+      // Only direct odd-depth children belong as holes of this filled region.
+      const holes = [];
+      for (let j = 0; j < projected.length; j++) {
+        if (parent[j] === i && depth[j] === depth[i] + 1) holes.push(projected[j]);
+      }
+
+      const triangles = THREE.ShapeUtils.triangulateShape(projected[i], holes);
       if (!triangles.length) continue;
+
       const pointMap = [];
-      [contour, ...holes].forEach(loop => loop.forEach(pt => pointMap.push(unprojectPoint(pt.u, pt.v, axis, planeValue))));
+      [projected[i], ...holes].forEach(loop => loop.forEach(pt => pointMap.push(unprojectPoint(pt.u, pt.v, axis, planeValue))));
       const vertices = [];
-      triangles.forEach(tri => tri.forEach(index => { const point = pointMap[index]; vertices.push(point.x, point.y, point.z); }));
+      triangles.forEach(tri => tri.forEach(index => {
+        const point = pointMap[index];
+        vertices.push(point.x, point.y, point.z);
+      }));
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
       geometry.computeVertexNormals();
       const material = new THREE.MeshStandardMaterial({ color: 0xb9c5d4, roughness: 0.72, metalness: 0.05, side: THREE.DoubleSide, clippingPlanes: [] });
       capMeshes.push(new THREE.Mesh(geometry, material));
     }
+
     if (capMeshes.length) {
-      capGroup = new THREE.Group(); capMeshes.forEach(mesh => capGroup.add(mesh)); scene.add(capGroup);
+      capGroup = new THREE.Group();
+      capMeshes.forEach(mesh => capGroup.add(mesh));
+      scene.add(capGroup);
     }
   }
 
