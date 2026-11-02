@@ -129,6 +129,8 @@ export function createViewer(canvas, container) {
     if (!modelRoot || !bounds) return null;
     const size = bounds.getSize(new THREE.Vector3());
     let triangles = 0, volume = 0, surfaceArea = 0;
+    const edgeCounts = new Map();
+    const weldEpsilon = Math.max(size.length() * 1e-7, 1e-7);
     const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
     const ab = new THREE.Vector3(), ac = new THREE.Vector3();
     modelRoot.updateMatrixWorld(true);
@@ -146,7 +148,9 @@ export function createViewer(canvas, container) {
         ab.subVectors(b, a); ac.subVectors(c, a); surfaceArea += ab.cross(ac).length() * 0.5;
       }
     });
-    return { size, triangles, volume: Math.abs(volume), surfaceArea };
+    let boundaryEdges=0,nonManifoldEdges=0;
+    for(const uses of edgeCounts.values()){if(uses===1)boundaryEdges++;else if(uses!==2)nonManifoldEdges++;}
+    return {size,triangles,volume:Math.abs(volume),surfaceArea,watertight:edgeCounts.size>0&&boundaryEdges===0&&nonManifoldEdges===0,boundaryEdges,nonManifoldEdges};
   }
 
   async function load(file) {
@@ -261,21 +265,33 @@ export function createViewer(canvas, container) {
     });
     if (!segments.length) return;
 
-    // Join the triangle/plane intersection segments into closed section contours.
-    const loops = [], unused = segments.slice();
-    while (unused.length) {
-      const first = unused.pop(), loop = [first[0], first[1]];
-      let extended = true;
-      while (extended) {
-        extended = false;
-        const end = loop[loop.length - 1];
-        for (let i = 0; i < unused.length; i++) {
-          const seg = unused[i];
-          if (seg[0].distanceToSquared(end) <= eps * eps) { loop.push(seg[1]); unused.splice(i, 1); extended = true; break; }
-          if (seg[1].distanceToSquared(end) <= eps * eps) { loop.push(seg[0]); unused.splice(i, 1); extended = true; break; }
+    // Weld duplicated STL triangle vertices into a graph; closed contours have degree 2.
+    const nodeKey = point => [point.x, point.y, point.z].map(value => Math.round(value / eps)).join(',');
+    const nodes = new Map(), adjacency = new Map(), edgeKeys = new Set();
+    const getNode = point => { const key=nodeKey(point); if(!nodes.has(key)) nodes.set(key,point.clone()); if(!adjacency.has(key)) adjacency.set(key,[]); return key; };
+    for (const segment of segments) {
+      const a=getNode(segment[0]), b=getNode(segment[1]); if(a===b) continue;
+      const edgeKey=a<b?a+'|'+b:b+'|'+a; if(edgeKeys.has(edgeKey)) continue;
+      edgeKeys.add(edgeKey); adjacency.get(a).push(b); adjacency.get(b).push(a);
+    }
+    const loops=[], visitedEdges=new Set();
+    const edgeKeyFor=(a,b)=>a<b?a+'|'+b:b+'|'+a;
+    for(const [startKey,neighbors] of adjacency) {
+      if(neighbors.length!==2) continue;
+      for(const firstNext of neighbors) {
+        if(visitedEdges.has(edgeKeyFor(startKey,firstNext))) continue;
+        const points=[nodes.get(startKey)]; let previous=startKey,current=firstNext,closed=false,guard=0;
+        while(guard++<=edgeKeys.size+1) {
+          const edgeKey=edgeKeyFor(previous,current); if(visitedEdges.has(edgeKey)) break;
+          visitedEdges.add(edgeKey);
+          if(current===startKey){closed=true;break;}
+          if(adjacency.get(current)?.length!==2) break;
+          points.push(nodes.get(current));
+          const next=adjacency.get(current).find(key=>key!==previous); if(!next) break;
+          previous=current;current=next;
         }
+        if(closed&&points.length>=3) loops.push(points);
       }
-      if (loop.length >= 3 && loop[loop.length - 1].distanceToSquared(loop[0]) <= eps * eps) { loop.pop(); loops.push(loop); }
     }
     if (!loops.length) return;
 
