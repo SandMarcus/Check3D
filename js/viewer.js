@@ -278,12 +278,16 @@ export function createViewer(canvas, container) {
 
     // Weld duplicated STL triangle vertices into a graph; closed contours have degree 2.
     // Spatial welding checks adjacent buckets as well, avoiding false splits at bucket boundaries.
-    const bucketCoords = point => [Math.floor(point.x / eps), Math.floor(point.y / eps), Math.floor(point.z / eps)];
+    // STL facets can carry tiny coordinate discrepancies at shared cut edges.
+    // Keep intersection precision unchanged, but allow a wider tolerance when
+    // joining the resulting contour endpoints into a continuous graph.
+    const weldEps = eps * 4;
+    const bucketCoords = point => [Math.floor(point.x / weldEps), Math.floor(point.y / weldEps), Math.floor(point.z / weldEps)];
     const bucketKey = (x, y, z) => x + ',' + y + ',' + z;
     const nodes = new Map(), adjacency = new Map(), edgeKeys = new Set(), nodeBuckets = new Map();
     const getNode = point => {
       const [bx, by, bz] = bucketCoords(point);
-      let nearestKey = null, nearestDistance = eps;
+      let nearestKey = null, nearestDistance = weldEps;
       for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
         const bucket = nodeBuckets.get(bucketKey(bx + dx, by + dy, bz + dz));
         if (!bucket) continue;
