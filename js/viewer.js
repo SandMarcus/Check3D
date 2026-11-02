@@ -42,6 +42,7 @@ export function createViewer(canvas, container) {
   let cutRatio = 0;
   let inverted = false;
   let cutPlane = null;
+  let capGroup = null;
   let modelPivot = null;
   let pivotOrigin = new THREE.Vector3();
   const modelPosition = { x: 0, y: 0, z: 0 };
@@ -77,7 +78,20 @@ export function createViewer(canvas, container) {
     });
   }
 
+  function disposeCap() {
+    if (!capGroup) return;
+    scene.remove(capGroup);
+    capGroup.traverse(object => {
+      if (!object.isMesh) return;
+      object.geometry?.dispose();
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach(material => material?.dispose());
+    });
+    capGroup = null;
+  }
+
   function disposeModel() {
+    disposeCap();
     if (!modelRoot) return;
     scene.remove(modelRoot);
     modelRoot.traverse(object => {
@@ -223,6 +237,165 @@ export function createViewer(canvas, container) {
     });
   }
 
+  function projectPoint(point, axis) {
+    if (axis === 'x') return { u: point.y, v: point.z };
+    if (axis === 'y') return { u: point.x, v: point.z };
+    return { u: point.x, v: point.y };
+  }
+
+  function unprojectPoint(u, v, axis, planeValue) {
+    if (axis === 'x') return new THREE.Vector3(planeValue, u, v);
+    if (axis === 'y') return new THREE.Vector3(u, planeValue, v);
+    return new THREE.Vector3(u, v, planeValue);
+  }
+
+  function addUniquePoint(points, point, epsilon = 1e-5) {
+    for (const existing of points) {
+      if (existing.distanceToSquared(point) <= epsilon * epsilon) return existing;
+    }
+    points.push(point.clone());
+    return points[points.length - 1];
+  }
+
+  function buildCutCap() {
+    disposeCap();
+    if (!modelRoot || !cutPlane) return;
+
+    const axis = cutAxis;
+    const axisIndex = { x: 0, y: 1, z: 2 }[axis];
+    const planeValue = cutPlane.constant * (cutPlane.normal.getComponent(axisIndex) < 0 ? -1 : 1);
+    const segments = [];
+    const p = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+    const planeDistance = point => cutPlane.distanceToPoint(point);
+    const eps = Math.max((bounds?.getSize(new THREE.Vector3()).length() || 1) * 1e-6, 1e-5);
+
+    modelRoot.updateMatrixWorld(true);
+    modelRoot.traverse(object => {
+      if (!object.isMesh || !object.geometry?.attributes.position) return;
+      const geometry = object.geometry;
+      const positions = geometry.attributes.position;
+      const index = geometry.index;
+      const count = index ? index.count : positions.count;
+      for (let i = 0; i + 2 < count; i += 3) {
+        const ia = index ? index.getX(i) : i;
+        const ib = index ? index.getX(i + 1) : i + 1;
+        const ic = index ? index.getX(i + 2) : i + 2;
+        p[0].fromBufferAttribute(positions, ia).applyMatrix4(object.matrixWorld);
+        p[1].fromBufferAttribute(positions, ib).applyMatrix4(object.matrixWorld);
+        p[2].fromBufferAttribute(positions, ic).applyMatrix4(object.matrixWorld);
+        const d = p.map(planeDistance);
+        const intersections = [];
+        for (let e = 0; e < 3; e++) {
+          const a = p[e];
+          const b = p[(e + 1) % 3];
+          const da = d[e];
+          const db = d[(e + 1) % 3];
+          if (Math.abs(da) <= eps) intersections.push(a.clone());
+          if ((da < -eps && db > eps) || (da > eps && db < -eps)) {
+            const t = da / (da - db);
+            intersections.push(a.clone().lerp(b, t));
+          }
+        }
+        const unique = [];
+        intersections.forEach(point => addUniquePoint(unique, point, eps));
+        if (unique.length === 2 && unique[0].distanceToSquared(unique[1]) > eps * eps) segments.push(unique);
+      }
+    });
+
+    if (!segments.length) return;
+
+    const loops = [];
+    const unused = segments.slice();
+    while (unused.length) {
+      const first = unused.pop();
+      const loop = [first[0], first[1]];
+      let extended = true;
+      while (extended) {
+        extended = false;
+        const end = loop[loop.length - 1];
+        for (let i = 0; i < unused.length; i++) {
+          const seg = unused[i];
+          if (seg[0].distanceToSquared(end) <= eps * eps) {
+            loop.push(seg[1]); unused.splice(i, 1); extended = true; break;
+          }
+          if (seg[1].distanceToSquared(end) <= eps * eps) {
+            loop.push(seg[0]); unused.splice(i, 1); extended = true; break;
+          }
+        }
+      }
+      if (loop.length >= 3 && loop[loop.length - 1].distanceToSquared(loop[0]) <= eps * eps) {
+        loop.pop();
+        loops.push(loop);
+      }
+    }
+
+    if (!loops.length) return;
+
+    const projected = loops.map(loop => loop.map(point => projectPoint(point, axis)));
+    const areas = projected.map(loop => {
+      let area = 0;
+      for (let i = 0; i < loop.length; i++) {
+        const a = loop[i], b = loop[(i + 1) % loop.length];
+        area += a.u * b.v - b.u * a.v;
+      }
+      return area * 0.5;
+    });
+
+    const capMeshes = [];
+    const used = new Set();
+    const pointInLoop = (point, loop) => {
+      let inside = false;
+      for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {
+        const a = loop[i], b = loop[j];
+        const intersects = ((a.v > point.v) !== (b.v > point.v)) && (point.u < (b.u - a.u) * (point.v - a.v) / ((b.v - a.v) || 1e-12) + a.u);
+        if (intersects) inside = !inside;
+      }
+      return inside;
+    };
+
+    for (let i = 0; i < projected.length; i++) {
+      if (used.has(i) || Math.abs(areas[i]) < eps * eps) continue;
+      const contour = projected[i];
+      const holes = [];
+      for (let j = 0; j < projected.length; j++) {
+        if (i === j || used.has(j) || Math.abs(areas[j]) < eps * eps) continue;
+        if (pointInLoop(projected[j][0], contour)) {
+          holes.push(projected[j]);
+          used.add(j);
+        }
+      }
+      used.add(i);
+
+      const triangles = THREE.ShapeUtils.triangulateShape(contour, holes);
+      if (!triangles.length) continue;
+      const vertices = [];
+      const pointMap = [];
+      const allPoints = [contour, ...holes];
+      allPoints.forEach(loop => loop.forEach(pt => pointMap.push(unprojectPoint(pt.u, pt.v, axis, planeValue))));
+      triangles.forEach(tri => {
+        tri.forEach(index => vertices.push(pointMap[index].x, pointMap[index].y, pointMap[index].z));
+      });
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.computeVertexNormals();
+      const material = new THREE.MeshStandardMaterial({
+        color: 0xb9c5d4,
+        roughness: 0.72,
+        metalness: 0.05,
+        side: THREE.DoubleSide,
+        clippingPlanes: []
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      capMeshes.push(mesh);
+    }
+
+    if (capMeshes.length) {
+      capGroup = new THREE.Group();
+      capMeshes.forEach(mesh => capGroup.add(mesh));
+      scene.add(capGroup);
+    }
+  }
+
   function applyCut() {
     if (!modelRoot || !bounds) return;
     const axisIndex = { x: 0, y: 1, z: 2 }[cutAxis];
@@ -236,12 +409,18 @@ export function createViewer(canvas, container) {
       material.clippingPlanes = [cutPlane];
       material.needsUpdate = true;
     });
+    buildCutCap();
   }
 
   return {
     load, fit, getInfo,
     setCut(axis, ratio, invert = false) { cutAxis = axis; cutRatio = Math.max(0, Math.min(1, ratio)); inverted = invert; applyCut(); },
-    clearCut() { eachMaterial(material => { material.clippingPlanes = []; }); cutRatio = 0; inverted = false; },
+    clearCut() {
+      eachMaterial(material => { material.clippingPlanes = []; material.needsUpdate = true; });
+      disposeCap();
+      cutRatio = 0;
+      inverted = false;
+    },
     getCutPosition() { if (!bounds) return 0; const i = { x: 0, y: 1, z: 2 }[cutAxis]; return bounds.min.getComponent(i) + (bounds.max.getComponent(i) - bounds.min.getComponent(i)) * cutRatio; },
     getCutBounds() { if (!bounds) return { min: 0, max: 0 }; const i = { x: 0, y: 1, z: 2 }[cutAxis]; return { min: bounds.min.getComponent(i), max: bounds.max.getComponent(i) }; },
     showGrid(value) { grid.visible = value; },
