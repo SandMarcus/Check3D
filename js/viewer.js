@@ -109,26 +109,18 @@ export function createViewer(canvas, container) {
     if (extension === 'stl') {
       const geometry = new STLLoader().parse(buffer);
       geometry.computeVertexNormals();
-      return new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
-        color: 0xb9c5d4, roughness: 0.72, metalness: 0.05, side: THREE.DoubleSide
-      }));
+      return new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xb9c5d4, roughness: 0.72, metalness: 0.05, side: THREE.DoubleSide }));
     }
     if (extension === '3mf') return new ThreeMFLoader().parse(buffer);
     if (extension === 'obj') return new OBJLoader().parse(new TextDecoder().decode(buffer));
     if (extension === 'ply') {
       const geometry = new PLYLoader().parse(buffer);
       if (!geometry.attributes.normal) geometry.computeVertexNormals();
-      const material = new THREE.MeshStandardMaterial({
-        color: 0xb9c5d4, roughness: 0.72, metalness: 0.05,
-        side: THREE.DoubleSide, vertexColors: geometry.hasAttribute('color')
-      });
-      return new THREE.Mesh(geometry, material);
+      return new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xb9c5d4, roughness: 0.72, metalness: 0.05, side: THREE.DoubleSide, vertexColors: geometry.hasAttribute('color') }));
     }
     if (extension === 'glb' || extension === 'gltf') {
       const loader = new GLTFLoader();
-      return await new Promise((resolve, reject) => {
-        loader.parse(buffer, '', result => resolve(result.scene), reject);
-      });
+      return await new Promise((resolve, reject) => loader.parse(buffer, '', result => resolve(result.scene), reject));
     }
     throw new Error('Unsupported file format');
   }
@@ -136,30 +128,22 @@ export function createViewer(canvas, container) {
   function getInfo() {
     if (!modelRoot || !bounds) return null;
     const size = bounds.getSize(new THREE.Vector3());
-    let triangles = 0;
-    let volume = 0;
-    let surfaceArea = 0;
+    let triangles = 0, volume = 0, surfaceArea = 0;
     const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
     const ab = new THREE.Vector3(), ac = new THREE.Vector3();
     modelRoot.updateMatrixWorld(true);
     modelRoot.traverse(object => {
       if (!object.isMesh || !object.geometry?.attributes.position) return;
-      const geometry = object.geometry;
-      const positions = geometry.attributes.position;
-      const index = geometry.index;
+      const geometry = object.geometry, positions = geometry.attributes.position, index = geometry.index;
       const count = index ? index.count : positions.count;
       triangles += Math.floor(count / 3);
       for (let i = 0; i + 2 < count; i += 3) {
-        const ia = index ? index.getX(i) : i;
-        const ib = index ? index.getX(i + 1) : i + 1;
-        const ic = index ? index.getX(i + 2) : i + 2;
+        const ia = index ? index.getX(i) : i, ib = index ? index.getX(i + 1) : i + 1, ic = index ? index.getX(i + 2) : i + 2;
         a.fromBufferAttribute(positions, ia).applyMatrix4(object.matrixWorld);
         b.fromBufferAttribute(positions, ib).applyMatrix4(object.matrixWorld);
         c.fromBufferAttribute(positions, ic).applyMatrix4(object.matrixWorld);
         volume += a.dot(b.clone().cross(c)) / 6;
-        ab.subVectors(b, a);
-        ac.subVectors(c, a);
-        surfaceArea += ab.cross(ac).length() * 0.5;
+        ab.subVectors(b, a); ac.subVectors(c, a); surfaceArea += ab.cross(ac).length() * 0.5;
       }
     });
     return { size, triangles, volume: Math.abs(volume), surfaceArea };
@@ -198,8 +182,7 @@ export function createViewer(canvas, container) {
     modelRoot.updateMatrixWorld(true);
     bounds = new THREE.Box3().setFromObject(modelRoot);
     fit();
-    const size = bounds.getSize(new THREE.Vector3());
-    const modelCenter = bounds.getCenter(new THREE.Vector3());
+    const size = bounds.getSize(new THREE.Vector3()), modelCenter = bounds.getCenter(new THREE.Vector3());
     grid.scale.setScalar(Math.max(size.length() / 200, 0.01));
     grid.position.set(modelCenter.x, modelCenter.y, bounds.min.z);
     applyCut();
@@ -208,18 +191,11 @@ export function createViewer(canvas, container) {
 
   function fit() {
     if (!modelRoot || !bounds) return;
-    const size = bounds.getSize(new THREE.Vector3());
-    const center = bounds.getCenter(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z, 1);
-    const distance = maxDim * 1.9;
+    const size = bounds.getSize(new THREE.Vector3()), center = bounds.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z, 1), distance = maxDim * 1.9;
     camera.position.set(center.x + distance, center.y + distance * 0.75, center.z + distance);
-    camera.near = Math.max(maxDim / 10000, 0.001);
-    camera.far = maxDim * 100;
-    camera.updateProjectionMatrix();
-    controls.target.copy(center);
-    controls.minDistance = maxDim * 0.03;
-    controls.maxDistance = maxDim * 30;
-    controls.update();
+    camera.near = Math.max(maxDim / 10000, 0.001); camera.far = maxDim * 100; camera.updateProjectionMatrix();
+    controls.target.copy(center); controls.minDistance = maxDim * 0.03; controls.maxDistance = maxDim * 30; controls.update();
   }
 
   function applyDisplayMode() {
@@ -242,197 +218,137 @@ export function createViewer(canvas, container) {
     if (axis === 'y') return { u: point.x, v: point.z };
     return { u: point.x, v: point.y };
   }
-
   function unprojectPoint(u, v, axis, planeValue) {
     if (axis === 'x') return new THREE.Vector3(planeValue, u, v);
     if (axis === 'y') return new THREE.Vector3(u, planeValue, v);
     return new THREE.Vector3(u, v, planeValue);
   }
-
   function addUniquePoint(points, point, epsilon = 1e-5) {
-    for (const existing of points) {
-      if (existing.distanceToSquared(point) <= epsilon * epsilon) return existing;
-    }
-    points.push(point.clone());
-    return points[points.length - 1];
+    for (const existing of points) if (existing.distanceToSquared(point) <= epsilon * epsilon) return existing;
+    points.push(point.clone()); return points[points.length - 1];
   }
 
   function buildCutCap() {
     disposeCap();
-    if (!modelRoot || !cutPlane) return;
-
-    const axis = cutAxis;
-    const axisIndex = { x: 0, y: 1, z: 2 }[axis];
-    const planeValue = cutPlane.constant * (cutPlane.normal.getComponent(axisIndex) < 0 ? -1 : 1);
-    const segments = [];
-    const p = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+    if (!modelRoot || !cutPlane || !bounds) return;
+    const axis = cutAxis, axisIndex = { x: 0, y: 1, z: 2 }[axis];
+    // The clipping plane's constant changes sign with its normal. Use the actual
+    // model-space cut coordinate so the cap sits exactly on the visible section.
+    const lo = bounds.min.getComponent(axisIndex), hi = bounds.max.getComponent(axisIndex);
+    const planeValue = lo + (hi - lo) * cutRatio;
+    const segments = [], p = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
     const planeDistance = point => cutPlane.distanceToPoint(point);
-    const eps = Math.max((bounds?.getSize(new THREE.Vector3()).length() || 1) * 1e-6, 1e-5);
+    const eps = Math.max(bounds.getSize(new THREE.Vector3()).length() * 1e-6, 1e-5);
 
     modelRoot.updateMatrixWorld(true);
     modelRoot.traverse(object => {
       if (!object.isMesh || !object.geometry?.attributes.position) return;
-      const geometry = object.geometry;
-      const positions = geometry.attributes.position;
-      const index = geometry.index;
+      const geometry = object.geometry, positions = geometry.attributes.position, index = geometry.index;
       const count = index ? index.count : positions.count;
       for (let i = 0; i + 2 < count; i += 3) {
-        const ia = index ? index.getX(i) : i;
-        const ib = index ? index.getX(i + 1) : i + 1;
-        const ic = index ? index.getX(i + 2) : i + 2;
+        const ia = index ? index.getX(i) : i, ib = index ? index.getX(i + 1) : i + 1, ic = index ? index.getX(i + 2) : i + 2;
         p[0].fromBufferAttribute(positions, ia).applyMatrix4(object.matrixWorld);
         p[1].fromBufferAttribute(positions, ib).applyMatrix4(object.matrixWorld);
         p[2].fromBufferAttribute(positions, ic).applyMatrix4(object.matrixWorld);
-        const d = p.map(planeDistance);
-        const intersections = [];
+        const d = p.map(planeDistance), intersections = [];
         for (let e = 0; e < 3; e++) {
-          const a = p[e];
-          const b = p[(e + 1) % 3];
-          const da = d[e];
-          const db = d[(e + 1) % 3];
+          const a = p[e], b = p[(e + 1) % 3], da = d[e], db = d[(e + 1) % 3];
           if (Math.abs(da) <= eps) intersections.push(a.clone());
-          if ((da < -eps && db > eps) || (da > eps && db < -eps)) {
-            const t = da / (da - db);
-            intersections.push(a.clone().lerp(b, t));
-          }
+          if ((da < -eps && db > eps) || (da > eps && db < -eps)) intersections.push(a.clone().lerp(b, da / (da - db)));
         }
         const unique = [];
         intersections.forEach(point => addUniquePoint(unique, point, eps));
         if (unique.length === 2 && unique[0].distanceToSquared(unique[1]) > eps * eps) segments.push(unique);
       }
     });
-
     if (!segments.length) return;
 
-    const loops = [];
-    const unused = segments.slice();
+    const loops = [], unused = segments.slice();
     while (unused.length) {
-      const first = unused.pop();
-      const loop = [first[0], first[1]];
+      const first = unused.pop(), loop = [first[0], first[1]];
       let extended = true;
       while (extended) {
         extended = false;
         const end = loop[loop.length - 1];
         for (let i = 0; i < unused.length; i++) {
           const seg = unused[i];
-          if (seg[0].distanceToSquared(end) <= eps * eps) {
-            loop.push(seg[1]); unused.splice(i, 1); extended = true; break;
-          }
-          if (seg[1].distanceToSquared(end) <= eps * eps) {
-            loop.push(seg[0]); unused.splice(i, 1); extended = true; break;
-          }
+          if (seg[0].distanceToSquared(end) <= eps * eps) { loop.push(seg[1]); unused.splice(i, 1); extended = true; break; }
+          if (seg[1].distanceToSquared(end) <= eps * eps) { loop.push(seg[0]); unused.splice(i, 1); extended = true; break; }
         }
       }
-      if (loop.length >= 3 && loop[loop.length - 1].distanceToSquared(loop[0]) <= eps * eps) {
-        loop.pop();
-        loops.push(loop);
-      }
+      if (loop.length >= 3 && loop[loop.length - 1].distanceToSquared(loop[0]) <= eps * eps) { loop.pop(); loops.push(loop); }
     }
-
     if (!loops.length) return;
 
     const projected = loops.map(loop => loop.map(point => projectPoint(point, axis)));
     const areas = projected.map(loop => {
-      let area = 0;
-      for (let i = 0; i < loop.length; i++) {
-        const a = loop[i], b = loop[(i + 1) % loop.length];
-        area += a.u * b.v - b.u * a.v;
-      }
+      let area = 0; for (let i = 0; i < loop.length; i++) { const a = loop[i], b = loop[(i + 1) % loop.length]; area += a.u * b.v - b.u * a.v; }
       return area * 0.5;
     });
-
-    const capMeshes = [];
-    const used = new Set();
     const pointInLoop = (point, loop) => {
       let inside = false;
       for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {
         const a = loop[i], b = loop[j];
-        const intersects = ((a.v > point.v) !== (b.v > point.v)) && (point.u < (b.u - a.u) * (point.v - a.v) / ((b.v - a.v) || 1e-12) + a.u);
-        if (intersects) inside = !inside;
+        if (((a.v > point.v) !== (b.v > point.v)) && point.u < (b.u - a.u) * (point.v - a.v) / ((b.v - a.v) || 1e-12) + a.u) inside = !inside;
       }
       return inside;
     };
 
+    // Build a filled section for every outer contour. Nested contours are treated
+    // as holes, preserving genuine cavities in a CAD solid instead of making the
+    // entire section look like a thin shell.
+    const capMeshes = [], used = new Set();
     for (let i = 0; i < projected.length; i++) {
       if (used.has(i) || Math.abs(areas[i]) < eps * eps) continue;
-      const contour = projected[i];
-      const holes = [];
+      const contour = projected[i], holes = [];
       for (let j = 0; j < projected.length; j++) {
         if (i === j || used.has(j) || Math.abs(areas[j]) < eps * eps) continue;
-        if (pointInLoop(projected[j][0], contour)) {
-          holes.push(projected[j]);
-          used.add(j);
-        }
+        if (pointInLoop(projected[j][0], contour)) { holes.push(projected[j]); used.add(j); }
       }
       used.add(i);
-
       const triangles = THREE.ShapeUtils.triangulateShape(contour, holes);
       if (!triangles.length) continue;
-      const vertices = [];
       const pointMap = [];
-      const allPoints = [contour, ...holes];
-      allPoints.forEach(loop => loop.forEach(pt => pointMap.push(unprojectPoint(pt.u, pt.v, axis, planeValue))));
-      triangles.forEach(tri => {
-        tri.forEach(index => vertices.push(pointMap[index].x, pointMap[index].y, pointMap[index].z));
-      });
+      [contour, ...holes].forEach(loop => loop.forEach(pt => pointMap.push(unprojectPoint(pt.u, pt.v, axis, planeValue))));
+      const vertices = [];
+      triangles.forEach(tri => tri.forEach(index => { const point = pointMap[index]; vertices.push(point.x, point.y, point.z); }));
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
       geometry.computeVertexNormals();
-      const material = new THREE.MeshStandardMaterial({
-        color: 0xb9c5d4,
-        roughness: 0.72,
-        metalness: 0.05,
-        side: THREE.DoubleSide,
-        clippingPlanes: []
-      });
-      const mesh = new THREE.Mesh(geometry, material);
-      capMeshes.push(mesh);
+      const material = new THREE.MeshStandardMaterial({ color: 0xb9c5d4, roughness: 0.72, metalness: 0.05, side: THREE.DoubleSide, clippingPlanes: [] });
+      capMeshes.push(new THREE.Mesh(geometry, material));
     }
-
     if (capMeshes.length) {
-      capGroup = new THREE.Group();
-      capMeshes.forEach(mesh => capGroup.add(mesh));
-      scene.add(capGroup);
+      capGroup = new THREE.Group(); capMeshes.forEach(mesh => capGroup.add(mesh)); scene.add(capGroup);
     }
   }
 
   function applyCut() {
     if (!modelRoot || !bounds) return;
-    const axisIndex = { x: 0, y: 1, z: 2 }[cutAxis];
-    const lo = bounds.min.getComponent(axisIndex);
-    const hi = bounds.max.getComponent(axisIndex);
-    const position = lo + (hi - lo) * cutRatio;
-    const normal = new THREE.Vector3();
+    const axisIndex = { x: 0, y: 1, z: 2 }[cutAxis], lo = bounds.min.getComponent(axisIndex), hi = bounds.max.getComponent(axisIndex);
+    const position = lo + (hi - lo) * cutRatio, normal = new THREE.Vector3();
     normal.setComponent(axisIndex, inverted ? -1 : 1);
     cutPlane = new THREE.Plane(normal, inverted ? position : -position);
-    eachMaterial(material => {
-      material.clippingPlanes = [cutPlane];
-      material.needsUpdate = true;
-    });
+    eachMaterial(material => { material.clippingPlanes = [cutPlane]; material.needsUpdate = true; });
     buildCutCap();
   }
 
   return {
     load, fit, getInfo,
     setCut(axis, ratio, invert = false) { cutAxis = axis; cutRatio = Math.max(0, Math.min(1, ratio)); inverted = invert; applyCut(); },
-    clearCut() {
-      eachMaterial(material => { material.clippingPlanes = []; material.needsUpdate = true; });
-      disposeCap();
-      cutRatio = 0;
-      inverted = false;
-    },
+    clearCut() { eachMaterial(material => { material.clippingPlanes = []; material.needsUpdate = true; }); disposeCap(); cutRatio = 0; inverted = false; },
     getCutPosition() { if (!bounds) return 0; const i = { x: 0, y: 1, z: 2 }[cutAxis]; return bounds.min.getComponent(i) + (bounds.max.getComponent(i) - bounds.min.getComponent(i)) * cutRatio; },
     getCutBounds() { if (!bounds) return { min: 0, max: 0 }; const i = { x: 0, y: 1, z: 2 }[cutAxis]; return { min: bounds.min.getComponent(i), max: bounds.max.getComponent(i) }; },
     showGrid(value) { grid.visible = value; },
     setWireframe(value) { displayMode = value ? 'wireframe' : 'solid'; applyDisplayMode(); },
     setDisplayMode(mode) { displayMode = mode; applyDisplayMode(); },
-    setBackground(mode) { backgroundMode = mode; const colors = { dark: 0x101318, white: 0xe9edf2, sunset: 0x3a2930 }; renderer.setClearColor(colors[mode] ?? colors.dark); scene.background = new THREE.Color(colors[mode] ?? colors.dark); grid.visible = grid.visible; },
+    setBackground(mode) { backgroundMode = mode; const colors = { dark: 0x101318, white: 0xe9edf2, sunset: 0x3a2930 }; renderer.setClearColor(colors[mode] ?? colors.dark); scene.background = new THREE.Color(colors[mode] ?? colors.dark); },
     setModelPosition(axis, value) { if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return; modelPosition[axis] = Number(value) || 0; modelPivot.position.set(pivotOrigin.x + modelPosition.x, pivotOrigin.y + modelPosition.y, pivotOrigin.z + modelPosition.z); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
     resetModelPosition() { if (!modelPivot) return; modelPosition.x = modelPosition.y = modelPosition.z = 0; modelPivot.position.copy(pivotOrigin); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
     setModelRotation(axis, degrees) { if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return; modelRotation[axis] = THREE.MathUtils.clamp(degrees, -180, 180); modelPivot.rotation.set(THREE.MathUtils.degToRad(modelRotation.x), THREE.MathUtils.degToRad(modelRotation.y), THREE.MathUtils.degToRad(modelRotation.z)); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
     resetModelRotation() { if (!modelPivot) return; modelRotation.x = modelRotation.y = modelRotation.z = 0; modelPivot.rotation.set(0, 0, 0); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
     setColor(value) { eachMaterial(material => { material.userData.check3dUserColor = value; if (material.color && displayMode !== 'clay') material.color.set(value); }); },
     setAutoRotate(value) { controls.autoRotate = value; },
-    setView(view) { if (!modelRoot || !bounds) return; const center = bounds.getCenter(new THREE.Vector3()); const size = bounds.getSize(new THREE.Vector3()); const d = Math.max(size.x, size.y, size.z, 1) * 2.2; if (view === 'front') camera.position.set(center.x, center.y - d, center.z); if (view === 'top') camera.position.set(center.x, center.y, center.z + d); if (view === 'side') camera.position.set(center.x + d, center.y, center.z); controls.target.copy(center); controls.update(); }
+    setView(view) { if (!modelRoot || !bounds) return; const center = bounds.getCenter(new THREE.Vector3()), size = bounds.getSize(new THREE.Vector3()), d = Math.max(size.x, size.y, size.z, 1) * 2.2; if (view === 'front') camera.position.set(center.x, center.y - d, center.z); if (view === 'top') camera.position.set(center.x, center.y, center.z + d); if (view === 'side') camera.position.set(center.x + d, center.y, center.z); controls.target.copy(center); controls.update(); }
   };
 }
