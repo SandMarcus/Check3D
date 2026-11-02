@@ -147,3 +147,12 @@ input[type=number],.cut-position-input{font-size:16px!important}
 .integrity-check{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line);font-size:12px}
 .integrity-check strong{font-size:11px;white-space:nowrap}
 .integrity-check .is-clear{color:#8de0b3}.integrity-check .has-issues{color:#ffd08a}
+
+.integrity-objects-heading{display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:12px;border-top:1px solid var(--line);font-size:13px}
+.integrity-objects{display:grid;gap:8px;margin-top:8px}
+.integrity-object{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);min-width:0}
+.integrity-object-copy{display:grid;gap:4px;min-width:0}
+.integrity-object-copy strong{font-size:12px;overflow-wrap:anywhere}
+.integrity-object-copy small{font-size:10px;color:var(--muted);line-height:1.4}
+.integrity-highlight-button{flex:0 0 auto;padding:7px 9px;min-height:34px;font-size:10px;border-color:#8a493d;color:#ffb19f;background:#33221f}
+.integrity-object-pass{font-size:10px;color:#8de0b3;white-space:nowrap;font-weight:700}
