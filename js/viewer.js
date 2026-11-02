@@ -281,7 +281,7 @@ export function createViewer(canvas, container) {
     // STL facets can carry tiny coordinate discrepancies at shared cut edges.
     // Keep intersection precision unchanged, but allow a wider tolerance when
     // joining the resulting contour endpoints into a continuous graph.
-    const weldEps = eps * 4;
+    const weldEps = eps * 8;
     const bucketCoords = point => [Math.floor(point.x / weldEps), Math.floor(point.y / weldEps), Math.floor(point.z / weldEps)];
     const bucketKey = (x, y, z) => x + ',' + y + ',' + z;
     const nodes = new Map(), adjacency = new Map(), edgeKeys = new Set(), nodeBuckets = new Map();
