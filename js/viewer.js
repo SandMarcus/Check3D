@@ -124,7 +124,9 @@ export function createViewer(canvas, container) {
     const size = bounds.getSize(new THREE.Vector3());
     let triangles = 0;
     let volume = 0;
+    let surfaceArea = 0;
     const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    const ab = new THREE.Vector3(), ac = new THREE.Vector3();
     modelRoot.updateMatrixWorld(true);
     modelRoot.traverse(object => {
       if (!object.isMesh || !object.geometry?.attributes.position) return;
@@ -141,9 +143,12 @@ export function createViewer(canvas, container) {
         b.fromBufferAttribute(positions, ib).applyMatrix4(object.matrixWorld);
         c.fromBufferAttribute(positions, ic).applyMatrix4(object.matrixWorld);
         volume += a.dot(b.clone().cross(c)) / 6;
+        ab.subVectors(b, a);
+        ac.subVectors(c, a);
+        surfaceArea += ab.cross(ac).length() * 0.5;
       }
     });
-    return { size, triangles, volume: Math.abs(volume) };
+    return { size, triangles, volume: Math.abs(volume), surfaceArea };
   }
 
   async function load(file) {
@@ -154,19 +159,13 @@ export function createViewer(canvas, container) {
     const nextBounds = new THREE.Box3().setFromObject(root);
     if (nextBounds.isEmpty()) throw new Error('The file does not contain a visible 3D mesh');
 
-    // Keep imported materials and textures, while making all meshes compatible
-    // with the viewer's clipping, wireframe and color controls.
     root.traverse(object => {
       if (!object.isMesh) return;
-      if (!object.material) {
-        object.material = new THREE.MeshStandardMaterial({ color: 0xb9c5d4 });
-      }
+      if (!object.material) object.material = new THREE.MeshStandardMaterial({ color: 0xb9c5d4 });
       const materials = Array.isArray(object.material) ? object.material : [object.material];
       materials.forEach(material => {
         material.side = THREE.DoubleSide;
-        if (material.color && material.userData.check3dOriginalColor === undefined) {
-          material.userData.check3dOriginalColor = material.color.getHex();
-        }
+        if (material.color && material.userData.check3dOriginalColor === undefined) material.userData.check3dOriginalColor = material.color.getHex();
         material.clippingPlanes = [];
         material.needsUpdate = true;
       });
@@ -240,93 +239,21 @@ export function createViewer(canvas, container) {
   }
 
   return {
-    load,
-    fit,
-    getInfo,
-    setCut(axis, ratio, invert = false) {
-      cutAxis = axis;
-      cutRatio = Math.max(0, Math.min(1, ratio));
-      inverted = invert;
-      applyCut();
-    },
-    clearCut() {
-      eachMaterial(material => { material.clippingPlanes = []; });
-      cutRatio = 0;
-      inverted = false;
-    },
-    getCutPosition() {
-      if (!bounds) return 0;
-      const i = { x: 0, y: 1, z: 2 }[cutAxis];
-      return bounds.min.getComponent(i) + (bounds.max.getComponent(i) - bounds.min.getComponent(i)) * cutRatio;
-    },
-    getCutBounds() {
-      if (!bounds) return { min: 0, max: 0 };
-      const i = { x: 0, y: 1, z: 2 }[cutAxis];
-      return { min: bounds.min.getComponent(i), max: bounds.max.getComponent(i) };
-    },
+    load, fit, getInfo,
+    setCut(axis, ratio, invert = false) { cutAxis = axis; cutRatio = Math.max(0, Math.min(1, ratio)); inverted = invert; applyCut(); },
+    clearCut() { eachMaterial(material => { material.clippingPlanes = []; }); cutRatio = 0; inverted = false; },
+    getCutPosition() { if (!bounds) return 0; const i = { x: 0, y: 1, z: 2 }[cutAxis]; return bounds.min.getComponent(i) + (bounds.max.getComponent(i) - bounds.min.getComponent(i)) * cutRatio; },
+    getCutBounds() { if (!bounds) return { min: 0, max: 0 }; const i = { x: 0, y: 1, z: 2 }[cutAxis]; return { min: bounds.min.getComponent(i), max: bounds.max.getComponent(i) }; },
     showGrid(value) { grid.visible = value; },
     setWireframe(value) { displayMode = value ? 'wireframe' : 'solid'; applyDisplayMode(); },
     setDisplayMode(mode) { displayMode = mode; applyDisplayMode(); },
-    setBackground(mode) {
-      backgroundMode = mode;
-      const colors = { dark: 0x101318, white: 0xe9edf2, sunset: 0x3a2930 };
-      renderer.setClearColor(colors[mode] ?? colors.dark);
-      scene.background = new THREE.Color(colors[mode] ?? colors.dark);
-      grid.visible = grid.visible;
-    },
-    setModelPosition(axis, value) {
-      if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return;
-      modelPosition[axis] = Number(value) || 0;
-      modelPivot.position.set(pivotOrigin.x + modelPosition.x, pivotOrigin.y + modelPosition.y, pivotOrigin.z + modelPosition.z);
-      modelPivot.updateMatrixWorld(true);
-      bounds = new THREE.Box3().setFromObject(modelPivot);
-      applyCut();
-    },
-    resetModelPosition() {
-      if (!modelPivot) return;
-      modelPosition.x = modelPosition.y = modelPosition.z = 0;
-      modelPivot.position.copy(pivotOrigin);
-      modelPivot.updateMatrixWorld(true);
-      bounds = new THREE.Box3().setFromObject(modelPivot);
-      applyCut();
-    },
-    setModelRotation(axis, degrees) {
-      if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return;
-      modelRotation[axis] = THREE.MathUtils.clamp(degrees, -180, 180);
-      modelPivot.rotation.set(
-        THREE.MathUtils.degToRad(modelRotation.x),
-        THREE.MathUtils.degToRad(modelRotation.y),
-        THREE.MathUtils.degToRad(modelRotation.z)
-      );
-      modelPivot.updateMatrixWorld(true);
-      bounds = new THREE.Box3().setFromObject(modelPivot);
-      applyCut();
-    },
-    resetModelRotation() {
-      if (!modelPivot) return;
-      modelRotation.x = modelRotation.y = modelRotation.z = 0;
-      modelPivot.rotation.set(0, 0, 0);
-      modelPivot.updateMatrixWorld(true);
-      bounds = new THREE.Box3().setFromObject(modelPivot);
-      applyCut();
-    },
-    setColor(value) {
-      eachMaterial(material => {
-        material.userData.check3dUserColor = value;
-        if (material.color && displayMode !== 'clay') material.color.set(value);
-      });
-    },
+    setBackground(mode) { backgroundMode = mode; const colors = { dark: 0x101318, white: 0xe9edf2, sunset: 0x3a2930 }; renderer.setClearColor(colors[mode] ?? colors.dark); scene.background = new THREE.Color(colors[mode] ?? colors.dark); grid.visible = grid.visible; },
+    setModelPosition(axis, value) { if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return; modelPosition[axis] = Number(value) || 0; modelPivot.position.set(pivotOrigin.x + modelPosition.x, pivotOrigin.y + modelPosition.y, pivotOrigin.z + modelPosition.z); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
+    resetModelPosition() { if (!modelPivot) return; modelPosition.x = modelPosition.y = modelPosition.z = 0; modelPivot.position.copy(pivotOrigin); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
+    setModelRotation(axis, degrees) { if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return; modelRotation[axis] = THREE.MathUtils.clamp(degrees, -180, 180); modelPivot.rotation.set(THREE.MathUtils.degToRad(modelRotation.x), THREE.MathUtils.degToRad(modelRotation.y), THREE.MathUtils.degToRad(modelRotation.z)); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
+    resetModelRotation() { if (!modelPivot) return; modelRotation.x = modelRotation.y = modelRotation.z = 0; modelPivot.rotation.set(0, 0, 0); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
+    setColor(value) { eachMaterial(material => { material.userData.check3dUserColor = value; if (material.color && displayMode !== 'clay') material.color.set(value); }); },
     setAutoRotate(value) { controls.autoRotate = value; },
-    setView(view) {
-      if (!modelRoot || !bounds) return;
-      const center = bounds.getCenter(new THREE.Vector3());
-      const size = bounds.getSize(new THREE.Vector3());
-      const d = Math.max(size.x, size.y, size.z, 1) * 2.2;
-      if (view === 'front') camera.position.set(center.x, center.y - d, center.z);
-      if (view === 'top') camera.position.set(center.x, center.y, center.z + d);
-      if (view === 'side') camera.position.set(center.x + d, center.y, center.z);
-      controls.target.copy(center);
-      controls.update();
-    }
+    setView(view) { if (!modelRoot || !bounds) return; const center = bounds.getCenter(new THREE.Vector3()); const size = bounds.getSize(new THREE.Vector3()); const d = Math.max(size.x, size.y, size.z, 1) * 2.2; if (view === 'front') camera.position.set(center.x, center.y - d, center.z); if (view === 'top') camera.position.set(center.x, center.y, center.z + d); if (view === 'side') camera.position.set(center.x + d, center.y, center.z); controls.target.copy(center); controls.update(); }
   };
 }
