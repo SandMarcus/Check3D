@@ -1,5 +1,6 @@
-import { createViewer } from './viewer.js?v=20261102-14';
+import { createViewer } from './viewer.js?v=20261102-17';
 
+const APP_VERSION = '1.2.6';
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
 let currentFile = null;
@@ -80,10 +81,11 @@ async function createBugReport() {
     for (const line of details) { let row = ''; for (const word of line.split(' ')) { const test = row ? row + ' ' + word : word; if (ctx.measureText(test).width > reportCanvas.width - 48 && row) { ctx.fillText(row, 24, y); y += 22; row = word; } else row = test; } if (row) { ctx.fillText(row, 24, y); y += 22; } }
     const blob = await new Promise(resolve => reportCanvas.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('Could not create screenshot image.');
-    const fileName = 'Check3D-bug-' + new Date().toISOString().replace(/[:.]/g, '-') + '.png';
+    const fileName = 'Check3D-v' + APP_VERSION + '-bug-' + new Date().toISOString().replace(/[:.]/g, '-') + '.png';
     const downloadUrl = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = downloadUrl; link.download = fileName; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(downloadUrl), 60000);
-    const body = ['## Bug description', 'Describe what looks wrong and where it happens.', '', '## Reproduction details', '- Model: ' + currentFile.name, '- Model size: ' + modelInfo.size.x.toFixed(2) + ' × ' + modelInfo.size.y.toFixed(2) + ' × ' + modelInfo.size.z.toFixed(2) + ' mm', '- Cut axis: ' + selectedAxis.toUpperCase(), '- Cut position: ' + viewer.getCutPosition().toFixed(3) + ' mm', '- Invert side: ' + ($('invertCut').getAttribute('aria-pressed') === 'true' ? 'On' : 'Off'), '- App version: 1.2.5', '', '## Diagnostics', '```text', diagnostics, '```', '', '**Screenshot:** Attach the downloaded ' + fileName + ' image before submitting.', '', '_The original 3D file is not uploaded._'].join('\n');
-    const url = 'https://github.com/SandMarcus/Check3D/issues/new?title=' + encodeURIComponent('Cut bug: ' + currentFile.name) + '&body=' + encodeURIComponent(body) + '&labels=bug';
+    const body = ['## Bug description', 'Describe what looks wrong and where it happens.', '', '## Reproduction details', '- Model: ' + currentFile.name, '- Model size: ' + modelInfo.size.x.toFixed(2) + ' × ' + modelInfo.size.y.toFixed(2) + ' × ' + modelInfo.size.z.toFixed(2) + ' mm', '- Cut axis: ' + selectedAxis.toUpperCase(), '- Cut position: ' + viewer.getCutPosition().toFixed(3) + ' mm', '- Invert side: ' + ($('invertCut').getAttribute('aria-pressed') === 'true' ? 'On' : 'Off'), '- App version: ' + APP_VERSION, '', '## Diagnostics', '```text', diagnostics, '```', '', '**Screenshot:** Attach the downloaded ' + fileName + ' image before submitting.', '', '_The original 3D file is not uploaded._'].join('\n');
+    const issueTitle = 'Check3D v' + APP_VERSION + ' – Cut bug: ' + currentFile.name;
+    const url = 'https://github.com/SandMarcus/Check3D/issues/new?title=' + encodeURIComponent(issueTitle) + '&body=' + encodeURIComponent(body) + '&labels=bug';
     if (issueTab) issueTab.location.href = url; else window.location.href = url;
     toast('Screenshot saved. Attach it to the GitHub report.');
   } catch (error) { if (issueTab) issueTab.close(); console.error('Bug report creation failed:', error); toast('Could not create bug report: ' + (error.message || error)); }
