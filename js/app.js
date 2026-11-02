@@ -1,6 +1,6 @@
-import { createViewer } from './viewer.js?v=20261102-19';
+import { createViewer } from './viewer.js?v=20261102-21';
 
-const APP_VERSION = '1.2.8';
+const APP_VERSION = '1.3.0';
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
 let currentFile = null;
@@ -42,6 +42,45 @@ async function loadFile(file) {
   $('modelName').textContent = file.name; $('fileSize').textContent = formatBytes(file.size);
   $('triangleCount').textContent = info.triangles.toLocaleString();
   $('meshIntegrity').textContent = info.watertight ? 'Watertight' : `Mesh issues (${info.boundaryEdges} open · ${info.nonManifoldEdges} non-manifold · ${info.orientationErrors} winding · ${info.degenerateTriangles} degenerate)`;
+  const issueCount = info.boundaryEdges + info.nonManifoldEdges + info.orientationErrors + info.degenerateTriangles;
+  $('integrityStatus').textContent = info.watertight ? 'PASS' : 'ISSUES FOUND';
+  $('integrityStatus').className = 'integrity-status ' + (info.watertight ? 'is-pass' : 'is-warning');
+  $('integrityHeadline').textContent = info.watertight ? 'No topology issues detected' : issueCount.toLocaleString() + ' topology findings';
+  $('integritySummary').textContent = info.watertight
+    ? info.triangles.toLocaleString() + ' triangles checked. The mesh passed all four integrity checks.'
+    : info.triangles.toLocaleString() + ' valid triangles checked. Review the findings below before exporting or printing.';
+  $('openEdgeCount').textContent = info.boundaryEdges.toLocaleString();
+  $('nonManifoldCount').textContent = info.nonManifoldEdges.toLocaleString();
+  $('windingCount').textContent = info.orientationErrors.toLocaleString();
+  $('degenerateCount').textContent = info.degenerateTriangles.toLocaleString();
+  const checks = [
+    ['Open edges', info.boundaryEdges],
+    ['Non-manifold edges', info.nonManifoldEdges],
+    ['Face winding', info.orientationErrors],
+    ['Degenerate triangles', info.degenerateTriangles]
+  ];
+  $('integrityChecklist').innerHTML = checks.map(([label, count]) =>
+    '<div class="integrity-check"><span>' + label + '</span><strong class="' + (count ? 'has-issues' : 'is-clear') + '">' +
+    (count ? count.toLocaleString() + ' found' : 'Clear') + '</strong></div>'
+  ).join('');
+  $('integrityObjects').innerHTML = info.objects.map(object => {
+    const issues = object.boundaryEdges + object.nonManifoldEdges + object.orientationErrors + object.degenerateTriangles;
+    const detail = [
+      object.boundaryEdges ? object.boundaryEdges + ' open' : '',
+      object.nonManifoldEdges ? object.nonManifoldEdges + ' non-manifold' : '',
+      object.orientationErrors ? object.orientationErrors + ' winding' : '',
+      object.degenerateTriangles ? object.degenerateTriangles + ' degenerate' : ''
+    ].filter(Boolean).join(' · ');
+    return '<div class="integrity-object"><div class="integrity-object-copy"><strong>' + escapeHtml(object.name) + '</strong><small>' +
+      object.triangles.toLocaleString() + ' triangles · ' + (issues ? escapeHtml(detail) : 'No issues found') +
+      '</small></div>' + (issues ? '<button type="button" class="option-button integrity-highlight-button" data-integrity-object="' + object.id + '">Highlight ' + issues.toLocaleString() + '</button>' : '<span class="integrity-object-pass">Clear</span>') + '</div>';
+  }).join('') || '<p class="note">No mesh objects found.</p>';
+  $('integrityObjects').querySelectorAll('[data-integrity-object]').forEach(button => button.addEventListener('click', () => {
+    const count = viewer.highlightIntegrityObject(Number(button.dataset.integrityObject));
+    toast(count ? 'Highlighted ' + count.toLocaleString() + ' affected triangles.' : 'No highlightable faces found.');
+  }));
+  $('clearIntegrityHighlight').addEventListener('click', () => viewer.clearIntegrityHighlight());
+
   $('dimX').textContent = `${info.size.x.toFixed(2)} mm`; $('dimY').textContent = `${info.size.y.toFixed(2)} mm`; $('dimZ').textContent = `${info.size.z.toFixed(2)} mm`;
   $('modelSizeHud').textContent = `${info.size.x.toFixed(1)} × ${info.size.y.toFixed(1)} × ${info.size.z.toFixed(1)} mm`;
   $('bugReportButton').disabled = false;
@@ -55,6 +94,7 @@ function resetMoveControls() { ['x','y','z'].forEach(axis => { $('move' + axis.t
   valueInput.addEventListener('change', () => { const min = Number(slider.min), max = Number(slider.max), value = Math.max(min, Math.min(max, Number(valueInput.value) || 0)); valueInput.value = value; slider.value = value; viewer.setModelPosition(axis, value); });
 });
 $('resetMove').addEventListener('click', () => { viewer.resetModelPosition(); resetMoveControls(); });
+function escapeHtml(value) { return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])); }
 function formatBytes(bytes) { if (bytes < 1024) return `${bytes} B`; if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`; return `${(bytes / 1048576).toFixed(2)} MB`; }
 function updateCutOutput() { const value = viewer.getCutPosition(); const cutBounds = viewer.getCutBounds(); $('cutPositionInput').value = currentFile ? value.toFixed(2) : ''; $('cutPositionInput').min = cutBounds.min; $('cutPositionInput').max = cutBounds.max; $('rangeMin').textContent = currentFile ? `${cutBounds.min.toFixed(1)} mm` : 'Min'; $('rangeMax').textContent = currentFile ? `${cutBounds.max.toFixed(1)} mm` : 'Max'; if (currentFile) { const d = viewer.getCutDiagnostics(); $('cutDiagnostics').textContent = `Cut diagnostics · ${d.triangles.toLocaleString()} triangles checked · ${d.segments.toLocaleString()} segments · ${d.nodes.toLocaleString()} nodes · ${d.loops} closed loops · ${d.degree1} open / ${d.degree3plus} branched nodes · ${d.regions} filled regions / ${d.capTriangles.toLocaleString()} cap triangles · nearest endpoint pairs: ${(d.endpointPairs || []).map(pair => `[${pair.a.join(', ')} ↔ ${pair.b.join(', ')}: ${pair.distance}]`).join(' ') || 'none'}`; } else $('cutDiagnostics').textContent = 'Cut diagnostics will appear when a model is loaded.'; }
 let selectedAxis = 'z';
@@ -103,7 +143,7 @@ $('backgroundSelect').addEventListener('change', e => viewer.setBackground(e.tar
 $('resetRotation').addEventListener('click', () => { viewer.resetModelRotation(); ['x','y','z'].forEach(axis => { $('rotate' + axis.toUpperCase()).value = 0; $('rotate' + axis.toUpperCase() + 'Value').value = 0; }); });
 $('autoRotate').addEventListener('change', e => viewer.setAutoRotate(e.target.checked)); $('modelColor').addEventListener('input', e => viewer.setColor(e.target.value));
 document.querySelectorAll('[data-view], [data-camera]').forEach(button => button.addEventListener('click', () => viewer.setView(button.dataset.view || button.dataset.camera)));
-document.querySelectorAll('.tool-tab').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.tool-tab').forEach(t => t.classList.toggle('active', t === tab)); ['cutPanel','infoPanel','viewPanel','rotationPanel','movePanel'].forEach(id => $(id).hidden = id !== tab.dataset.panel); }));
+document.querySelectorAll('.tool-tab').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.tool-tab').forEach(t => t.classList.toggle('active', t === tab)); ['cutPanel','infoPanel','viewPanel','rotationPanel','movePanel','integrityPanel'].forEach(id => $(id).hidden = id !== tab.dataset.panel); }));
 const viewport = $('viewport'); viewport.addEventListener('dragover', e => { e.preventDefault(); viewport.classList.add('dragging'); }); viewport.addEventListener('dragleave', () => viewport.classList.remove('dragging')); viewport.addEventListener('drop', e => { e.preventDefault(); viewport.classList.remove('dragging'); const file = e.dataTransfer.files?.[0]; if (file) loadFile(file); });
 document.querySelectorAll('.group-toggle').forEach(toggle => toggle.addEventListener('click', () => { const expanded = toggle.getAttribute('aria-expanded') === 'true'; toggle.setAttribute('aria-expanded', String(!expanded)); $(toggle.getAttribute('aria-controls')).hidden = expanded; }));
 
