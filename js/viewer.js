@@ -425,8 +425,13 @@ export function createViewer(canvas, container) {
       stats.regions++;
       stats.capTriangles += triangles.length;
 
+      // ShapeUtils may normalize or remove contour points while triangulating.
+      // Build the 3D lookup from the exact arrays used by the returned indices,
+      // not from the untouched source loops, so triangle indices cannot drift.
       const pointMap = [];
-      [projected[i], ...holes].forEach(loop => loop.forEach(pt => pointMap.push(unprojectPoint(pt.u, pt.v, axis, planeValue))));
+      [contour2D, ...holes2D].forEach(loop => loop.forEach(pt => {
+        pointMap.push(unprojectPoint(pt.x, pt.y, axis, planeValue));
+      }));
       const vertices = [];
       triangles.forEach(tri => tri.forEach(index => {
         const point = pointMap[index];
