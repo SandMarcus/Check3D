@@ -129,35 +129,105 @@ export function createViewer(canvas, container) {
   function getInfo() {
     if (!modelRoot || !bounds) return null;
     const size = bounds.getSize(new THREE.Vector3());
-    let triangles = 0, volume = 0, surfaceArea = 0;
-    const edgeCounts = new Map();
     const weldEpsilon = Math.max(size.length() * 1e-7, 1e-7);
+    const pointKey = point => [
+      Math.round(point.x / weldEpsilon),
+      Math.round(point.y / weldEpsilon),
+      Math.round(point.z / weldEpsilon)
+    ].join(',');
+
+    let triangles = 0, volume = 0, surfaceArea = 0;
+    let boundaryEdges = 0, nonManifoldEdges = 0, orientationErrors = 0, degenerateTriangles = 0;
     const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
-    const ab = new THREE.Vector3(), ac = new THREE.Vector3();
+    const ab = new THREE.Vector3(), ac = new THREE.Vector3(), cross = new THREE.Vector3();
+
+    // Keep topology local to each mesh object. Two independent bodies that happen to
+    // touch must not make one another appear manifold (or hide an open boundary).
     modelRoot.updateMatrixWorld(true);
     modelRoot.traverse(object => {
       if (!object.isMesh || !object.geometry?.attributes.position) return;
-      const geometry = object.geometry, positions = geometry.attributes.position, index = geometry.index;
-      const count = index ? index.count : positions.count;
-      triangles += Math.floor(count / 3);
-      for (let i = 0; i + 2 < count; i += 3) {
-        const ia = index ? index.getX(i) : i, ib = index ? index.getX(i + 1) : i + 1, ic = index ? index.getX(i + 2) : i + 2;
+      const geometry = object.geometry;
+      const positions = geometry.attributes.position;
+      const index = geometry.index;
+      const available = index ? index.count : positions.count;
+      const start = Math.max(0, geometry.drawRange.start || 0);
+      const end = Math.min(available, Number.isFinite(geometry.drawRange.count) ? start + geometry.drawRange.count : available);
+      const count = Math.floor((end - start) / 3) * 3;
+      const edgeUses = new Map();
+      const parent = [];
+      const componentVolume = [];
+      const find = value => {
+        let root = value;
+        while (parent[root] !== root) root = parent[root];
+        while (parent[value] !== value) { const next = parent[value]; parent[value] = root; value = next; }
+        return root;
+      };
+      const unite = (left, right) => {
+        const l = find(left), r = find(right);
+        if (l !== r) parent[r] = l;
+      };
+
+      for (let i = start; i < start + count; i += 3) {
+        const ia = index ? index.getX(i) : i;
+        const ib = index ? index.getX(i + 1) : i + 1;
+        const ic = index ? index.getX(i + 2) : i + 2;
         a.fromBufferAttribute(positions, ia).applyMatrix4(object.matrixWorld);
         b.fromBufferAttribute(positions, ib).applyMatrix4(object.matrixWorld);
         c.fromBufferAttribute(positions, ic).applyMatrix4(object.matrixWorld);
-        const edgeId = point => [point.x, point.y, point.z].map(value => Math.round(value / weldEpsilon)).join(',');
-        const ids = [edgeId(a), edgeId(b), edgeId(c)];
+
+        ab.subVectors(b, a); ac.subVectors(c, a);
+        cross.crossVectors(ab, ac);
+        const twiceArea = cross.length();
+        if (twiceArea <= weldEpsilon * weldEpsilon) {
+          degenerateTriangles++;
+          continue;
+        }
+
+        const triangleId = parent.length;
+        parent.push(triangleId);
+        const signedVolume = a.dot(b.clone().cross(c)) / 6;
+        componentVolume.push(signedVolume);
+        triangles++;
+        surfaceArea += twiceArea * 0.5;
+
+        const ids = [pointKey(a), pointKey(b), pointKey(c)];
         for (const [from, to] of [[ids[0], ids[1]], [ids[1], ids[2]], [ids[2], ids[0]]]) {
           const key = from < to ? from + '|' + to : to + '|' + from;
-          edgeCounts.set(key, (edgeCounts.get(key) || 0) + 1);
+          const direction = from < to ? 1 : -1;
+          const previous = edgeUses.get(key);
+          if (previous) {
+            previous.count++;
+            previous.direction += direction;
+            unite(triangleId, previous.triangle);
+          } else {
+            edgeUses.set(key, { count: 1, direction, triangle: triangleId });
+          }
         }
-        volume += a.dot(b.clone().cross(c)) / 6;
-        ab.subVectors(b, a); ac.subVectors(c, a); surfaceArea += ab.cross(ac).length() * 0.5;
+      }
+
+      // A mesh can contain several disconnected shells. Accumulate signed volume per
+      // connected component before taking the absolute value, so reversed shells do not
+      // cancel one another out.
+      const volumesByComponent = new Map();
+      componentVolume.forEach((value, triangleId) => {
+        const root = find(triangleId);
+        volumesByComponent.set(root, (volumesByComponent.get(root) || 0) + value);
+      });
+      for (const value of volumesByComponent.values()) volume += Math.abs(value);
+
+      for (const edge of edgeUses.values()) {
+        if (edge.count === 1) boundaryEdges++;
+        else if (edge.count !== 2) nonManifoldEdges++;
+        else if (edge.direction !== 0) orientationErrors++;
       }
     });
-    let boundaryEdges=0,nonManifoldEdges=0;
-    for(const uses of edgeCounts.values()){if(uses===1)boundaryEdges++;else if(uses!==2)nonManifoldEdges++;}
-    return {size,triangles,volume:Math.abs(volume),surfaceArea,watertight:edgeCounts.size>0&&boundaryEdges===0&&nonManifoldEdges===0,boundaryEdges,nonManifoldEdges};
+
+    const watertight = triangles > 0 && boundaryEdges === 0 &&
+      nonManifoldEdges === 0 && orientationErrors === 0 && degenerateTriangles === 0;
+    return {
+      size, triangles, volume, surfaceArea, watertight,
+      boundaryEdges, nonManifoldEdges, orientationErrors, degenerateTriangles
+    };
   }
 
   async function load(file) {
