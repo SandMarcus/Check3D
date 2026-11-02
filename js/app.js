@@ -1,4 +1,4 @@
-import { createViewer } from './viewer.js?v=20261102-03';
+import { createViewer } from './viewer.js?v=20261102-04';
 
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
@@ -40,6 +40,7 @@ async function loadFile(file) {
   $('welcome').hidden = true; $('welcome').classList.add('is-hidden'); $('modelHud').hidden = false;
   $('modelName').textContent = file.name; $('fileSize').textContent = formatBytes(file.size);
   $('triangleCount').textContent = info.triangles.toLocaleString();
+  $('meshIntegrity').textContent = info.watertight ? 'Watertight' : `Open / non-manifold (${info.boundaryEdges} open edges, ${info.nonManifoldEdges} irregular)`;
   $('dimX').textContent = `${info.size.x.toFixed(2)} mm`; $('dimY').textContent = `${info.size.y.toFixed(2)} mm`; $('dimZ').textContent = `${info.size.z.toFixed(2)} mm`;
   $('modelSizeHud').textContent = `${info.size.x.toFixed(1)} × ${info.size.y.toFixed(1)} × ${info.size.z.toFixed(1)} mm`;
   $('cutSlider').disabled = false; $('centerCut').disabled = false; $('invertCut').disabled = false; $('cutSlider').value = 0;
