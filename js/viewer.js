@@ -138,14 +138,17 @@ export function createViewer(canvas, container) {
 
     let triangles = 0, volume = 0, surfaceArea = 0;
     let boundaryEdges = 0, nonManifoldEdges = 0, orientationErrors = 0, degenerateTriangles = 0;
+    const objects = [];
     const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
     const ab = new THREE.Vector3(), ac = new THREE.Vector3(), cross = new THREE.Vector3();
 
-    // Keep topology local to each mesh object. Two independent bodies that happen to
-    // touch must not make one another appear manifold (or hide an open boundary).
+    clearIntegrityHighlight();
     modelRoot.updateMatrixWorld(true);
+    let objectId = 0;
     modelRoot.traverse(object => {
       if (!object.isMesh || !object.geometry?.attributes.position) return;
+      const id = objectId++;
+      object.userData.check3dIntegrityId = id;
       const geometry = object.geometry;
       const positions = geometry.attributes.position;
       const index = geometry.index;
@@ -156,6 +159,9 @@ export function createViewer(canvas, container) {
       const edgeUses = new Map();
       const parent = [];
       const componentVolume = [];
+      const affected = new Set();
+      let objectTriangles = 0, objectBoundary = 0, objectNonManifold = 0;
+      let objectOrientation = 0, objectDegenerate = 0, objectArea = 0, objectVolume = 0;
       const find = value => {
         let root = value;
         while (parent[root] !== root) root = parent[root];
@@ -174,12 +180,13 @@ export function createViewer(canvas, container) {
         a.fromBufferAttribute(positions, ia).applyMatrix4(object.matrixWorld);
         b.fromBufferAttribute(positions, ib).applyMatrix4(object.matrixWorld);
         c.fromBufferAttribute(positions, ic).applyMatrix4(object.matrixWorld);
+        const triangleOffset = i;
 
         ab.subVectors(b, a); ac.subVectors(c, a);
         cross.crossVectors(ab, ac);
         const twiceArea = cross.length();
         if (twiceArea <= weldEpsilon * weldEpsilon) {
-          degenerateTriangles++;
+          degenerateTriangles++; objectDegenerate++; affected.add(triangleOffset);
           continue;
         }
 
@@ -187,8 +194,8 @@ export function createViewer(canvas, container) {
         parent.push(triangleId);
         const signedVolume = a.dot(b.clone().cross(c)) / 6;
         componentVolume.push(signedVolume);
-        triangles++;
-        surfaceArea += twiceArea * 0.5;
+        triangles++; objectTriangles++;
+        surfaceArea += twiceArea * 0.5; objectArea += twiceArea * 0.5;
 
         const ids = [pointKey(a), pointKey(b), pointKey(c)];
         for (const [from, to] of [[ids[0], ids[1]], [ids[1], ids[2]], [ids[2], ids[0]]]) {
@@ -198,38 +205,104 @@ export function createViewer(canvas, container) {
           if (previous) {
             previous.count++;
             previous.direction += direction;
+            previous.triangles.push(triangleOffset);
             unite(triangleId, previous.triangle);
           } else {
-            edgeUses.set(key, { count: 1, direction, triangle: triangleId });
+            edgeUses.set(key, { count: 1, direction, triangle: triangleId, triangles: [triangleOffset] });
           }
         }
       }
 
-      // A mesh can contain several disconnected shells. Accumulate signed volume per
-      // connected component before taking the absolute value, so reversed shells do not
-      // cancel one another out.
       const volumesByComponent = new Map();
       componentVolume.forEach((value, triangleId) => {
         const root = find(triangleId);
         volumesByComponent.set(root, (volumesByComponent.get(root) || 0) + value);
       });
-      for (const value of volumesByComponent.values()) volume += Math.abs(value);
+      for (const value of volumesByComponent.values()) {
+        objectVolume += Math.abs(value);
+      }
+      volume += objectVolume;
 
       for (const edge of edgeUses.values()) {
-        if (edge.count === 1) boundaryEdges++;
-        else if (edge.count !== 2) nonManifoldEdges++;
-        else if (edge.direction !== 0) orientationErrors++;
+        if (edge.count === 1) {
+          boundaryEdges++; objectBoundary++;
+          edge.triangles.forEach(face => affected.add(face));
+        } else if (edge.count !== 2) {
+          nonManifoldEdges++; objectNonManifold++;
+          edge.triangles.forEach(face => affected.add(face));
+        } else if (edge.direction !== 0) {
+          orientationErrors++; objectOrientation++;
+          edge.triangles.forEach(face => affected.add(face));
+        }
       }
+
+      degenerateTriangles += 0;
+      object.userData.check3dAffectedFaces = [...affected];
+      objects.push({
+        id, name: object.name || object.parent?.name || 'Mesh ' + (id + 1),
+        triangles: objectTriangles, boundaryEdges: objectBoundary,
+        nonManifoldEdges: objectNonManifold, orientationErrors: objectOrientation,
+        degenerateTriangles: objectDegenerate, surfaceArea: objectArea,
+        volume: objectVolume, affectedFaces: [...affected]
+      });
     });
 
     const watertight = triangles > 0 && boundaryEdges === 0 &&
       nonManifoldEdges === 0 && orientationErrors === 0 && degenerateTriangles === 0;
     return {
-      size, triangles, volume, surfaceArea, watertight,
+      size, triangles, volume, surfaceArea, watertight, objects,
       boundaryEdges, nonManifoldEdges, orientationErrors, degenerateTriangles
     };
   }
 
+  function clearIntegrityHighlight() {
+    if (!modelRoot) return;
+    modelRoot.traverse(object => {
+      const overlay = object.userData?.check3dIntegrityOverlay;
+      if (overlay) {
+        object.remove(overlay);
+        overlay.geometry?.dispose();
+        overlay.material?.dispose();
+        delete object.userData.check3dIntegrityOverlay;
+      }
+    });
+  }
+
+  function highlightIntegrityObject(id) {
+    if (!modelRoot) return 0;
+    clearIntegrityHighlight();
+    let target = null;
+    modelRoot.traverse(object => {
+      if (object.isMesh && object.userData.check3dIntegrityId === id) target = object;
+    });
+    if (!target) return 0;
+    const geometry = target.geometry, positions = geometry.attributes.position, index = geometry.index;
+    const info = getInfoForHighlight(target);
+    if (!info.length) return 0;
+    const values = [];
+    for (const offset of info) {
+      for (let j = 0; j < 3; j++) {
+        const vertex = index ? index.getX(offset + j) : offset + j;
+        values.push(positions.getX(vertex), positions.getY(vertex), positions.getZ(vertex));
+      }
+    }
+    const overlayGeometry = new THREE.BufferGeometry();
+    overlayGeometry.setAttribute('position', new THREE.Float32BufferAttribute(values, 3));
+    overlayGeometry.computeVertexNormals();
+    const overlayMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffb000, side: THREE.DoubleSide, depthTest: true,
+      polygonOffset: true, polygonOffsetFactor: -2, clippingPlanes: renderer.clippingPlanes || []
+    });
+    const overlay = new THREE.Mesh(overlayGeometry, overlayMaterial);
+    overlay.renderOrder = 5;
+    target.add(overlay);
+    target.userData.check3dIntegrityOverlay = overlay;
+    return info.length;
+  }
+
+  function getInfoForHighlight(target) {
+    return target.userData.check3dAffectedFaces || [];
+  }
   async function load(file) {
     const buffer = await file.arrayBuffer();
     const loaded = await parseFile(file, buffer);
