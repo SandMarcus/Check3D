@@ -63,7 +63,8 @@ async function loadFile(file) {
     '<div class="integrity-check"><span>' + label + '</span><strong class="' + (count ? 'has-issues' : 'is-clear') + '">' +
     (count ? count.toLocaleString() + ' found' : 'Clear') + '</strong></div>'
   ).join('');
-  $('integrityObjects').innerHTML = info.objects.map(object => {
+  const integrityObjects = Array.isArray(info.objects) ? info.objects : [];
+  $('integrityObjects').innerHTML = integrityObjects.map(object => {
     const issues = object.boundaryEdges + object.nonManifoldEdges + object.orientationErrors + object.degenerateTriangles;
     const detail = [
       object.boundaryEdges ? object.boundaryEdges + ' open' : '',
@@ -76,10 +77,13 @@ async function loadFile(file) {
       '</small></div>' + (issues ? '<button type="button" class="option-button integrity-highlight-button" data-integrity-object="' + object.id + '">Highlight ' + issues.toLocaleString() + '</button>' : '<span class="integrity-object-pass">Clear</span>') + '</div>';
   }).join('') || '<p class="note">No mesh objects found.</p>';
   $('integrityObjects').querySelectorAll('[data-integrity-object]').forEach(button => button.addEventListener('click', () => {
+    if (typeof viewer.highlightIntegrityObject !== 'function') return toast('Object highlighting is not available in this build.');
     const count = viewer.highlightIntegrityObject(Number(button.dataset.integrityObject));
     toast(count ? 'Highlighted ' + count.toLocaleString() + ' affected triangles.' : 'No highlightable faces found.');
   }));
-  $('clearIntegrityHighlight').addEventListener('click', () => viewer.clearIntegrityHighlight());
+  if (typeof viewer.clearIntegrityHighlight === 'function') {
+    $('clearIntegrityHighlight').onclick = () => viewer.clearIntegrityHighlight();
+  }
 
   $('dimX').textContent = `${info.size.x.toFixed(2)} mm`; $('dimY').textContent = `${info.size.y.toFixed(2)} mm`; $('dimZ').textContent = `${info.size.z.toFixed(2)} mm`;
   $('modelSizeHud').textContent = `${info.size.x.toFixed(1)} × ${info.size.y.toFixed(1)} × ${info.size.z.toFixed(1)} mm`;
