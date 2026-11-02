@@ -43,6 +43,7 @@ async function loadFile(file) {
   $('meshIntegrity').textContent = info.watertight ? 'Watertight' : `Open / non-manifold (${info.boundaryEdges} open edges, ${info.nonManifoldEdges} irregular)`;
   $('dimX').textContent = `${info.size.x.toFixed(2)} mm`; $('dimY').textContent = `${info.size.y.toFixed(2)} mm`; $('dimZ').textContent = `${info.size.z.toFixed(2)} mm`;
   $('modelSizeHud').textContent = `${info.size.x.toFixed(1)} × ${info.size.y.toFixed(1)} × ${info.size.z.toFixed(1)} mm`;
+  $('bugReportButton').disabled = false;
   $('cutSlider').disabled = false; $('cutPositionInput').disabled = false; $('centerCut').disabled = false; $('invertCut').disabled = false; $('cutSlider').value = 0;
   viewer.setCut('z', 0, false); updateCutOutput(); toast('3D model loaded successfully.');
 }
@@ -61,6 +62,34 @@ $('cutSlider').addEventListener('input', () => { viewer.setCut(selectedAxis, Num
 $('cutPositionInput').addEventListener('change', () => { const input = $('cutPositionInput'); if (!currentFile || input.value === '') return; const bounds = viewer.getCutBounds(); const position = Math.max(bounds.min, Math.min(bounds.max, Number(input.value))); viewer.setCutPosition(selectedAxis, position, $('invertCut').getAttribute('aria-pressed') === 'true'); const ratio = (position - bounds.min) / (bounds.max - bounds.min || 1); $('cutSlider').value = Math.round(ratio * 1000); updateCutOutput(); });
 $('centerCut').addEventListener('click', () => { $('cutSlider').value = 500; viewer.setCut(selectedAxis, .5, $('invertCut').getAttribute('aria-pressed') === 'true'); updateCutOutput(); });
 $('invertCut').addEventListener('click', () => { const next = $('invertCut').getAttribute('aria-pressed') !== 'true'; $('invertCut').setAttribute('aria-pressed', String(next)); $('invertCut').textContent = next ? 'Invert side: on' : 'Invert side'; viewer.setCut(selectedAxis, Number($('cutSlider').value) / 1000, next); });
+async function createBugReport() {
+  if (!currentFile) return toast('Load a 3D model before reporting a bug.');
+  const issueTab = window.open('about:blank', '_blank');
+  try {
+    const diagnostics = $('cutDiagnostics').textContent;
+    const image = new Image(); image.src = viewer.captureScreenshot();
+    await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; });
+    const reportCanvas = document.createElement('canvas');
+    reportCanvas.width = image.naturalWidth; reportCanvas.height = image.naturalHeight + 150;
+    const ctx = reportCanvas.getContext('2d');
+    ctx.fillStyle = '#101318'; ctx.fillRect(0, 0, reportCanvas.width, reportCanvas.height); ctx.drawImage(image, 0, 0);
+    ctx.fillStyle = '#f1f3f6'; ctx.font = 'bold 22px system-ui'; ctx.fillText('Check3D cut bug report', 24, image.naturalHeight + 36);
+    ctx.fillStyle = '#b9c5d4'; ctx.font = '15px system-ui';
+    const details = ['File: ' + currentFile.name, 'Cut: ' + selectedAxis.toUpperCase() + ' = ' + viewer.getCutPosition().toFixed(3) + ' mm · Invert: ' + ($('invertCut').getAttribute('aria-pressed') === 'true' ? 'on' : 'off'), diagnostics];
+    let y = image.naturalHeight + 65;
+    for (const line of details) { let row = ''; for (const word of line.split(' ')) { const test = row ? row + ' ' + word : word; if (ctx.measureText(test).width > reportCanvas.width - 48 && row) { ctx.fillText(row, 24, y); y += 22; row = word; } else row = test; } if (row) { ctx.fillText(row, 24, y); y += 22; } }
+    const blob = await new Promise(resolve => reportCanvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('Could not create screenshot image.');
+    const fileName = 'Check3D-bug-' + new Date().toISOString().replace(/[:.]/g, '-') + '.png';
+    const downloadUrl = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = downloadUrl; link.download = fileName; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(downloadUrl), 60000);
+    const body = ['## Bug description', 'Describe what looks wrong and where it happens.', '', '## Reproduction details', '- Model: ' + currentFile.name, '- Model size: ' + modelInfo.size.x.toFixed(2) + ' × ' + modelInfo.size.y.toFixed(2) + ' × ' + modelInfo.size.z.toFixed(2) + ' mm', '- Cut axis: ' + selectedAxis.toUpperCase(), '- Cut position: ' + viewer.getCutPosition().toFixed(3) + ' mm', '- Invert side: ' + ($('invertCut').getAttribute('aria-pressed') === 'true' ? 'On' : 'Off'), '- App version: 1.2.5', '', '## Diagnostics', '```text', diagnostics, '```', '', '**Screenshot:** Attach the downloaded ' + fileName + ' image before submitting.', '', '_The original 3D file is not uploaded._'].join('\n');
+    const url = 'https://github.com/SandMarcus/Check3D/issues/new?title=' + encodeURIComponent('Cut bug: ' + currentFile.name) + '&body=' + encodeURIComponent(body) + '&labels=bug';
+    if (issueTab) issueTab.location.href = url; else window.location.href = url;
+    toast('Screenshot saved. Attach it to the GitHub report.');
+  } catch (error) { if (issueTab) issueTab.close(); console.error('Bug report creation failed:', error); toast('Could not create bug report: ' + (error.message || error)); }
+}
+$('bugReportButton').addEventListener('click', createBugReport);
+
 $('clearCut').addEventListener('click', () => { $('cutSlider').value = 0; $('invertCut').setAttribute('aria-pressed', 'false'); $('invertCut').textContent = 'Invert side'; viewer.clearCut(); updateCutOutput(); });
 $('resetView').addEventListener('click', () => viewer.fit());
 $('showGrid').addEventListener('change', e => viewer.showGrid(e.target.checked)); $('gridToggle').addEventListener('change', e => { $('showGrid').checked = e.target.checked; viewer.showGrid(e.target.checked); });
