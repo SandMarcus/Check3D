@@ -1,4 +1,4 @@
-import { createViewer } from './viewer.js?v=20261102-09';
+import { createViewer } from './viewer.js?v=20261102-10';
 
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
