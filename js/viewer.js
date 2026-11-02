@@ -459,6 +459,7 @@ export function createViewer(canvas, container) {
 
   return {
     load, fit, getInfo,
+    captureScreenshot() { renderer.render(scene, camera); return canvas.toDataURL('image/png'); },
     getCutDiagnostics() { return { ...cutDiagnostics, openNodePositions: (cutDiagnostics.openNodePositions || []).map(point => [...point]), nearestOpenDistances: [...(cutDiagnostics.nearestOpenDistances || [])], endpointPairs: (cutDiagnostics.endpointPairs || []).map(pair => ({ a: [...pair.a], b: [...pair.b], distance: pair.distance })) }; },
     setCut(axis, ratio, invert = false) { cutAxis = axis; cutRatio = Math.max(0, Math.min(1, ratio)); inverted = invert; applyCut(); },
     setCutPosition(axis, position, invert = false) { if (!bounds) return; const i = { x: 0, y: 1, z: 2 }[axis]; const lo = bounds.min.getComponent(i), hi = bounds.max.getComponent(i); const ratio = hi === lo ? 0 : (Number(position) - lo) / (hi - lo); cutAxis = axis; cutRatio = Math.max(0, Math.min(1, ratio)); inverted = invert; applyCut(); },
