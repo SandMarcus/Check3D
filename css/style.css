@@ -130,3 +130,20 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 html,body{touch-action:manipulation}
 input,select,textarea,button{touch-action:manipulation}
 input[type=number],.cut-position-input{font-size:16px!important}
+
+/* Visible mesh integrity report */
+.integrity-overview{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel2);margin-bottom:12px}
+.integrity-overview>strong{display:block;font-size:15px;margin-bottom:5px}
+.integrity-overview p{font-size:11px;line-height:1.5;color:var(--muted);margin:0}
+.integrity-status{font-size:10px;font-weight:800;letter-spacing:.07em;padding:6px 9px;border-radius:99px;background:#343b46;color:var(--muted);white-space:nowrap}
+.integrity-status.is-pass{background:#173c2d;color:#8de0b3}
+.integrity-status.is-warning{background:#49351d;color:#ffd08a}
+.integrity-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.integrity-metric{min-width:0;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.integrity-metric span,.integrity-metric small{display:block;color:var(--muted);font-size:10px}
+.integrity-metric strong{display:block;font-size:23px;line-height:1.25;font-variant-numeric:tabular-nums;margin:5px 0}
+.integrity-metric small{line-height:1.35}
+.integrity-checklist{margin-top:12px;border-top:1px solid var(--line)}
+.integrity-check{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line);font-size:12px}
+.integrity-check strong{font-size:11px;white-space:nowrap}
+.integrity-check .is-clear{color:#8de0b3}.integrity-check .has-issues{color:#ffd08a}
