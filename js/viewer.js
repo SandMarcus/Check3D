@@ -291,7 +291,7 @@ export function createViewer(canvas, container) {
     overlayGeometry.computeVertexNormals();
     const overlayMaterial = new THREE.MeshBasicMaterial({
       color: 0xffb000, side: THREE.DoubleSide, depthTest: true,
-      polygonOffset: true, polygonOffsetFactor: -2, clippingPlanes: renderer.clippingPlanes || []
+      polygonOffset: true, polygonOffsetFactor: -2, clippingPlanes: (Array.isArray(target.material) ? target.material[0] : target.material)?.clippingPlanes || []
     });
     const overlay = new THREE.Mesh(overlayGeometry, overlayMaterial);
     overlay.renderOrder = 5;
