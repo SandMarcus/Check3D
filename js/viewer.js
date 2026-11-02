@@ -43,6 +43,7 @@ export function createViewer(canvas, container) {
   let inverted = false;
   let cutPlane = null;
   let capGroup = null;
+  let cutDiagnostics = { triangles: 0, intersecting: 0, segments: 0, nodes: 0, degree1: 0, degree2: 0, degree3plus: 0, loops: 0, regions: 0, capTriangles: 0 };
   let modelPivot = null;
   let pivotOrigin = new THREE.Vector3();
   const modelPosition = { x: 0, y: 0, z: 0 };
@@ -245,6 +246,7 @@ export function createViewer(canvas, container) {
     const lo = bounds.min.getComponent(axisIndex), hi = bounds.max.getComponent(axisIndex);
     const planeValue = lo + (hi - lo) * cutRatio;
     const segments = [], p = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+    const stats = { triangles: 0, intersecting: 0, segments: 0, nodes: 0, degree1: 0, degree2: 0, degree3plus: 0, loops: 0, regions: 0, capTriangles: 0 };
     const planeDistance = point => cutPlane.distanceToPoint(point);
     const eps = Math.max(bounds.getSize(new THREE.Vector3()).length() * 1e-6, 1e-5);
 
@@ -254,6 +256,7 @@ export function createViewer(canvas, container) {
       const geometry = object.geometry, positions = geometry.attributes.position, index = geometry.index;
       const count = index ? index.count : positions.count;
       for (let i = 0; i + 2 < count; i += 3) {
+        stats.triangles++;
         const ia = index ? index.getX(i) : i, ib = index ? index.getX(i + 1) : i + 1, ic = index ? index.getX(i + 2) : i + 2;
         p[0].fromBufferAttribute(positions, ia).applyMatrix4(object.matrixWorld);
         p[1].fromBufferAttribute(positions, ib).applyMatrix4(object.matrixWorld);
@@ -266,10 +269,12 @@ export function createViewer(canvas, container) {
         }
         const unique = [];
         intersections.forEach(point => addUniquePoint(unique, point, eps));
+        if (unique.length >= 2) stats.intersecting++;
         if (unique.length === 2 && unique[0].distanceToSquared(unique[1]) > eps * eps) segments.push(unique);
       }
     });
-    if (!segments.length) return;
+    stats.segments = segments.length;
+    if (!segments.length) { cutDiagnostics = stats; return; }
 
     // Weld duplicated STL triangle vertices into a graph; closed contours have degree 2.
     const nodeKey = point => [point.x, point.y, point.z].map(value => Math.round(value / eps)).join(',');
@@ -279,6 +284,12 @@ export function createViewer(canvas, container) {
       const a=getNode(segment[0]), b=getNode(segment[1]); if(a===b) continue;
       const edgeKey=a<b?a+'|'+b:b+'|'+a; if(edgeKeys.has(edgeKey)) continue;
       edgeKeys.add(edgeKey); adjacency.get(a).push(b); adjacency.get(b).push(a);
+    }
+    stats.nodes = nodes.size;
+    for (const neighbors of adjacency.values()) {
+      if (neighbors.length === 1) stats.degree1++;
+      else if (neighbors.length === 2) stats.degree2++;
+      else if (neighbors.length > 2) stats.degree3plus++;
     }
     const loops=[], visitedEdges=new Set();
     const edgeKeyFor=(a,b)=>a<b?a+'|'+b:b+'|'+a;
@@ -299,7 +310,8 @@ export function createViewer(canvas, container) {
         if(closed&&points.length>=3) loops.push(points);
       }
     }
-    if (!loops.length) return;
+    stats.loops = loops.length;
+    if (!loops.length) { cutDiagnostics = stats; return; }
 
     const projected = loops.map(loop => loop.map(point => projectPoint(point, axis)));
     const areas = projected.map(loop => {
@@ -355,6 +367,8 @@ export function createViewer(canvas, container) {
       const holes2D = holes.map(loop => loop.map(point => new THREE.Vector2(point.u, point.v)));
       const triangles = THREE.ShapeUtils.triangulateShape(contour2D, holes2D);
       if (!triangles.length) continue;
+      stats.regions++;
+      stats.capTriangles += triangles.length;
 
       const pointMap = [];
       [projected[i], ...holes].forEach(loop => loop.forEach(pt => pointMap.push(unprojectPoint(pt.u, pt.v, axis, planeValue))));
@@ -370,6 +384,7 @@ export function createViewer(canvas, container) {
       capMeshes.push(new THREE.Mesh(geometry, material));
     }
 
+    cutDiagnostics = stats;
     if (capMeshes.length) {
       capGroup = new THREE.Group();
       capMeshes.forEach(mesh => capGroup.add(mesh));
@@ -389,6 +404,7 @@ export function createViewer(canvas, container) {
 
   return {
     load, fit, getInfo,
+    getCutDiagnostics() { return { ...cutDiagnostics }; },
     setCut(axis, ratio, invert = false) { cutAxis = axis; cutRatio = Math.max(0, Math.min(1, ratio)); inverted = invert; applyCut(); },
     clearCut() { eachMaterial(material => { material.clippingPlanes = []; material.needsUpdate = true; }); disposeCap(); cutRatio = 0; inverted = false; },
     getCutPosition() { if (!bounds) return 0; const i = { x: 0, y: 1, z: 2 }[cutAxis]; return bounds.min.getComponent(i) + (bounds.max.getComponent(i) - bounds.min.getComponent(i)) * cutRatio; },
