@@ -1,6 +1,6 @@
-import { createViewer } from './viewer.js?v=20261102-18';
+import { createViewer } from './viewer.js?v=20261102-19';
 
-const APP_VERSION = '1.2.7';
+const APP_VERSION = '1.2.8';
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
 let currentFile = null;
@@ -41,7 +41,7 @@ async function loadFile(file) {
   $('welcome').hidden = true; $('welcome').classList.add('is-hidden'); $('modelHud').hidden = false;
   $('modelName').textContent = file.name; $('fileSize').textContent = formatBytes(file.size);
   $('triangleCount').textContent = info.triangles.toLocaleString();
-  $('meshIntegrity').textContent = info.watertight ? 'Watertight' : `Open / non-manifold (${info.boundaryEdges} open edges, ${info.nonManifoldEdges} irregular)`;
+  $('meshIntegrity').textContent = info.watertight ? 'Watertight' : `Mesh issues (${info.boundaryEdges} open · ${info.nonManifoldEdges} non-manifold · ${info.orientationErrors} winding · ${info.degenerateTriangles} degenerate)`;
   $('dimX').textContent = `${info.size.x.toFixed(2)} mm`; $('dimY').textContent = `${info.size.y.toFixed(2)} mm`; $('dimZ').textContent = `${info.size.z.toFixed(2)} mm`;
   $('modelSizeHud').textContent = `${info.size.x.toFixed(1)} × ${info.size.y.toFixed(1)} × ${info.size.z.toFixed(1)} mm`;
   $('bugReportButton').disabled = false;
