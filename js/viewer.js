@@ -144,6 +144,12 @@ export function createViewer(canvas, container) {
         a.fromBufferAttribute(positions, ia).applyMatrix4(object.matrixWorld);
         b.fromBufferAttribute(positions, ib).applyMatrix4(object.matrixWorld);
         c.fromBufferAttribute(positions, ic).applyMatrix4(object.matrixWorld);
+        const edgeId = point => [point.x, point.y, point.z].map(value => Math.round(value / weldEpsilon)).join(',');
+        const ids = [edgeId(a), edgeId(b), edgeId(c)];
+        for (const [from, to] of [[ids[0], ids[1]], [ids[1], ids[2]], [ids[2], ids[0]]]) {
+          const key = from < to ? from + '|' + to : to + '|' + from;
+          edgeCounts.set(key, (edgeCounts.get(key) || 0) + 1);
+        }
         volume += a.dot(b.clone().cross(c)) / 6;
         ab.subVectors(b, a); ac.subVectors(c, a); surfaceArea += ab.cross(ac).length() * 0.5;
       }
@@ -345,7 +351,9 @@ export function createViewer(canvas, container) {
         if (parent[j] === i && depth[j] === depth[i] + 1) holes.push(projected[j]);
       }
 
-      const triangles = THREE.ShapeUtils.triangulateShape(projected[i], holes);
+      const contour2D = projected[i].map(point => new THREE.Vector2(point.u, point.v));
+      const holes2D = holes.map(loop => loop.map(point => new THREE.Vector2(point.u, point.v)));
+      const triangles = THREE.ShapeUtils.triangulateShape(contour2D, holes2D);
       if (!triangles.length) continue;
 
       const pointMap = [];
