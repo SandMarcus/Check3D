@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111318">
   <title>Check3D</title>
-  <link rel="stylesheet" href="./css/style.css?v=20261102-13">
+  <link rel="stylesheet" href="./css/style.css?v=20261102-14">
   <script type="importmap">
     {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"}}
   </script>
@@ -25,6 +25,6 @@
     <section class="slice-modal" id="sliceModal" hidden role="dialog" aria-modal="true" aria-labelledby="sliceTitle"><div class="slice-dialog"><div class="panel-heading"><div><h2 id="sliceTitle">Print estimate</h2><p>Approximate filament use and print time.</p></div><button class="text-button" id="closeSlice" aria-label="Close">✕</button></div><div class="slice-fields"><label>Model type<select id="sliceModelType"><option value="solid" selected>Solid model</option><option value="shell">Shell / hollow model</option></select></label><label>Manufacturer<select id="sliceManufacturer"><option value="">Loading manufacturers…</option></select></label><label>Printer model<select id="slicePrinter"><option value="">Choose printer model</option></select></label><label>Process profile<select id="sliceProfile"><option value="generic">Generic estimate · 0.20 mm</option></select></label><label>Material<select id="sliceMaterial"><option value="pla">PLA</option><option value="petg">PETG</option><option value="abs">ABS</option><option value="asa">ASA</option><option value="tpu">TPU</option></select></label><label>Infill <span id="infillLabel">15%</span><input id="sliceInfill" type="range" min="0" max="100" step="5" value="15"></label></div><div class="slice-results"><div class="slice-result"><span>Filament</span><strong id="sliceGrams">—</strong><small id="sliceLength">—</small></div><div class="slice-result"><span>Estimated time</span><strong id="sliceTime">—</strong><small id="sliceLayers">—</small></div></div><p class="note" id="slicePrinterNote">Choose a printer and exact model to use its bundled process profile names.</p><p class="note" id="sliceNote">Solid model is the default. For hollow/shell models, switch Model type to estimate wall material plus infill.</p><button class="primary-button slice-calculate" id="recalculateSlice">Update estimate</button></div></section>
     <div class="toast" id="toast" role="status" aria-live="polite"></div><footer class="app-footer">Check3D <span>v1.2.5</span> <span class="footer-separator">·</span> Updated 2 Nov 2026</footer>
   </main>
-  <script type="module" src="./js/app.js?v=20261102-13"></script>
+  <script type="module" src="./js/app.js?v=20261102-14"></script>
 </body>
 </html>
