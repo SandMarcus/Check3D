@@ -1,4 +1,4 @@
-import { createViewer } from './viewer.js?v=20261101-12';
+import { createViewer } from './viewer.js?v=20261102-01';
 
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
@@ -25,19 +25,9 @@ $('fileInput').addEventListener('change', async (event) => {
 async function loadFile(file) {
   const supported = /\.(stl|3mf|obj|glb|gltf|ply)$/i.test(file.name);
   if (!supported) return toast('Unsupported file. Choose STL, 3MF, OBJ, GLB, GLTF or PLY.');
-
-  // Keep file parsing errors separate from UI updates. Once the viewer has
-  // loaded the model, a later interface issue must not report a false load error.
   let info;
-  try {
-    info = await viewer.load(file);
-  } catch (error) {
-    console.error('3D model loading failed:', error);
-    const detail = error?.message || String(error);
-    toast(`Load error: ${detail.slice(0, 110)}`);
-    return;
-  }
-
+  try { info = await viewer.load(file); }
+  catch (error) { console.error('3D model loading failed:', error); toast(`Load error: ${(error?.message || String(error)).slice(0, 110)}`); return; }
   currentFile = file;
   modelInfo = info;
   viewer.resetModelPosition();
@@ -45,291 +35,105 @@ async function loadFile(file) {
   const moveLimit = Math.max(info.size.x, info.size.y, info.size.z, 1) * 2;
   ['x','y','z'].forEach(axis => {
     const slider = $('move' + axis.toUpperCase());
-    slider.min = -moveLimit;
-    slider.max = moveLimit;
-    slider.step = Math.max(moveLimit / 2000, 0.01);
+    slider.min = -moveLimit; slider.max = moveLimit; slider.step = Math.max(moveLimit / 2000, 0.01);
   });
-  $('welcome').hidden = true;
-  $('welcome').classList.add('is-hidden');
-  $('modelHud').hidden = false;
-  $('modelName').textContent = file.name;
-  $('fileSize').textContent = formatBytes(file.size);
+  $('welcome').hidden = true; $('welcome').classList.add('is-hidden'); $('modelHud').hidden = false;
+  $('modelName').textContent = file.name; $('fileSize').textContent = formatBytes(file.size);
   $('triangleCount').textContent = info.triangles.toLocaleString();
-  $('dimX').textContent = `${info.size.x.toFixed(2)} mm`;
-  $('dimY').textContent = `${info.size.y.toFixed(2)} mm`;
-  $('dimZ').textContent = `${info.size.z.toFixed(2)} mm`;
+  $('dimX').textContent = `${info.size.x.toFixed(2)} mm`; $('dimY').textContent = `${info.size.y.toFixed(2)} mm`; $('dimZ').textContent = `${info.size.z.toFixed(2)} mm`;
   $('modelSizeHud').textContent = `${info.size.x.toFixed(1)} × ${info.size.y.toFixed(1)} × ${info.size.z.toFixed(1)} mm`;
-  $('cutSlider').disabled = false;
-  $('centerCut').disabled = false;
-  $('invertCut').disabled = false;
-  $('cutSlider').value = 0;
-  viewer.setCut('z', 0, false);
-  updateCutOutput();
-  toast('3D model loaded successfully.');
+  $('cutSlider').disabled = false; $('centerCut').disabled = false; $('invertCut').disabled = false; $('cutSlider').value = 0;
+  viewer.setCut('z', 0, false); updateCutOutput(); toast('3D model loaded successfully.');
 }
-function resetMoveControls() {
-  ['x','y','z'].forEach(axis => {
-    $('move' + axis.toUpperCase()).value = 0;
-    $('move' + axis.toUpperCase() + 'Value').value = 0;
-  });
-}
+function resetMoveControls() { ['x','y','z'].forEach(axis => { $('move' + axis.toUpperCase()).value = 0; $('move' + axis.toUpperCase() + 'Value').value = 0; }); }
 ['x','y','z'].forEach(axis => {
-  const slider = $('move' + axis.toUpperCase());
-  const valueInput = $('move' + axis.toUpperCase() + 'Value');
-  slider.addEventListener('input', () => {
-    const value = Number(slider.value);
-    valueInput.value = value;
-    viewer.setModelPosition(axis, value);
-  });
-  valueInput.addEventListener('change', () => {
-    const min = Number(slider.min), max = Number(slider.max);
-    const value = Math.max(min, Math.min(max, Number(valueInput.value) || 0));
-    valueInput.value = value;
-    slider.value = value;
-    viewer.setModelPosition(axis, value);
-  });
+  const slider = $('move' + axis.toUpperCase()), valueInput = $('move' + axis.toUpperCase() + 'Value');
+  slider.addEventListener('input', () => { const value = Number(slider.value); valueInput.value = value; viewer.setModelPosition(axis, value); });
+  valueInput.addEventListener('change', () => { const min = Number(slider.min), max = Number(slider.max), value = Math.max(min, Math.min(max, Number(valueInput.value) || 0)); valueInput.value = value; slider.value = value; viewer.setModelPosition(axis, value); });
 });
-$('resetMove').addEventListener('click', () => {
-  viewer.resetModelPosition();
-  resetMoveControls();
-});
-
-function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1048576).toFixed(2)} MB`;
-}
-
-function updateCutOutput() {
-  const value = viewer.getCutPosition();
-  $('cutOutput').textContent = currentFile ? `${value.toFixed(2)} mm` : '—';
-  $('rangeMin').textContent = currentFile ? `${viewer.getCutBounds().min.toFixed(1)} mm` : 'Min';
-  $('rangeMax').textContent = currentFile ? `${viewer.getCutBounds().max.toFixed(1)} mm` : 'Max';
-}
+$('resetMove').addEventListener('click', () => { viewer.resetModelPosition(); resetMoveControls(); });
+function formatBytes(bytes) { if (bytes < 1024) return `${bytes} B`; if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`; return `${(bytes / 1048576).toFixed(2)} MB`; }
+function updateCutOutput() { const value = viewer.getCutPosition(); $('cutOutput').textContent = currentFile ? `${value.toFixed(2)} mm` : '—'; $('rangeMin').textContent = currentFile ? `${viewer.getCutBounds().min.toFixed(1)} mm` : 'Min'; $('rangeMax').textContent = currentFile ? `${viewer.getCutBounds().max.toFixed(1)} mm` : 'Max'; }
 let selectedAxis = 'z';
-document.querySelectorAll('.axis-button').forEach(button => {
-  button.addEventListener('click', () => {
-    selectedAxis = button.dataset.axis;
-    document.querySelectorAll('.axis-button').forEach(b => b.classList.toggle('selected', b === button));
-    viewer.setCut(selectedAxis, Number($('cutSlider').value) / 1000, $('invertCut').getAttribute('aria-pressed') === 'true');
-    updateCutOutput();
-  });
-});
-$('cutSlider').addEventListener('input', () => {
-  viewer.setCut(selectedAxis, Number($('cutSlider').value) / 1000, $('invertCut').getAttribute('aria-pressed') === 'true');
-  updateCutOutput();
-});
-$('centerCut').addEventListener('click', () => {
-  $('cutSlider').value = 500;
-  viewer.setCut(selectedAxis, .5, $('invertCut').getAttribute('aria-pressed') === 'true');
-  updateCutOutput();
-});
-$('invertCut').addEventListener('click', () => {
-  const next = $('invertCut').getAttribute('aria-pressed') !== 'true';
-  $('invertCut').setAttribute('aria-pressed', String(next));
-  $('invertCut').textContent = next ? 'Invert side: on' : 'Invert side';
-  viewer.setCut(selectedAxis, Number($('cutSlider').value) / 1000, next);
-});
-$('clearCut').addEventListener('click', () => {
-  $('cutSlider').value = 0;
-  $('invertCut').setAttribute('aria-pressed', 'false');
-  $('invertCut').textContent = 'Invert side';
-  viewer.clearCut();
-  updateCutOutput();
-});
+document.querySelectorAll('.axis-button').forEach(button => button.addEventListener('click', () => { selectedAxis = button.dataset.axis; document.querySelectorAll('.axis-button').forEach(b => b.classList.toggle('selected', b === button)); viewer.setCut(selectedAxis, Number($('cutSlider').value) / 1000, $('invertCut').getAttribute('aria-pressed') === 'true'); updateCutOutput(); }));
+$('cutSlider').addEventListener('input', () => { viewer.setCut(selectedAxis, Number($('cutSlider').value) / 1000, $('invertCut').getAttribute('aria-pressed') === 'true'); updateCutOutput(); });
+$('centerCut').addEventListener('click', () => { $('cutSlider').value = 500; viewer.setCut(selectedAxis, .5, $('invertCut').getAttribute('aria-pressed') === 'true'); updateCutOutput(); });
+$('invertCut').addEventListener('click', () => { const next = $('invertCut').getAttribute('aria-pressed') !== 'true'; $('invertCut').setAttribute('aria-pressed', String(next)); $('invertCut').textContent = next ? 'Invert side: on' : 'Invert side'; viewer.setCut(selectedAxis, Number($('cutSlider').value) / 1000, next); });
+$('clearCut').addEventListener('click', () => { $('cutSlider').value = 0; $('invertCut').setAttribute('aria-pressed', 'false'); $('invertCut').textContent = 'Invert side'; viewer.clearCut(); updateCutOutput(); });
 $('resetView').addEventListener('click', () => viewer.fit());
-$('showGrid').addEventListener('change', e => viewer.showGrid(e.target.checked));
-$('gridToggle').addEventListener('change', e => { $('showGrid').checked = e.target.checked; viewer.showGrid(e.target.checked); });
-$('wireframe').addEventListener('change', e => {
-  if (e.target.checked) { $('xray').checked = false; $('clay').checked = false; viewer.setDisplayMode('wireframe'); }
-  else viewer.setDisplayMode('solid');
-});
-$('xray').addEventListener('change', e => {
-  if (e.target.checked) { $('wireframe').checked = false; $('clay').checked = false; viewer.setDisplayMode('xray'); }
-  else viewer.setDisplayMode('solid');
-});
-$('clay').addEventListener('change', e => {
-  if (e.target.checked) { $('wireframe').checked = false; $('xray').checked = false; viewer.setDisplayMode('clay'); }
-  else viewer.setDisplayMode('solid');
-});
+$('showGrid').addEventListener('change', e => viewer.showGrid(e.target.checked)); $('gridToggle').addEventListener('change', e => { $('showGrid').checked = e.target.checked; viewer.showGrid(e.target.checked); });
+$('wireframe').addEventListener('change', e => { if (e.target.checked) { $('xray').checked = false; $('clay').checked = false; viewer.setDisplayMode('wireframe'); } else viewer.setDisplayMode('solid'); });
+$('xray').addEventListener('change', e => { if (e.target.checked) { $('wireframe').checked = false; $('clay').checked = false; viewer.setDisplayMode('xray'); } else viewer.setDisplayMode('solid'); });
+$('clay').addEventListener('change', e => { if (e.target.checked) { $('wireframe').checked = false; $('xray').checked = false; viewer.setDisplayMode('clay'); } else viewer.setDisplayMode('solid'); });
 $('backgroundSelect').addEventListener('change', e => viewer.setBackground(e.target.value));
-['x', 'y', 'z'].forEach(axis => {
-  const slider = $('rotate' + axis.toUpperCase());
-  const output = $('rotate' + axis.toUpperCase() + 'Value');
-  slider.addEventListener('input', () => {
-    output.value = slider.value;
-    viewer.setModelRotation(axis, Number(slider.value));
-  });
-  output.addEventListener('change', () => {
-    const value = Math.max(-180, Math.min(180, Number(output.value) || 0));
-    output.value = value;
-    slider.value = value;
-    viewer.setModelRotation(axis, value);
-  });
-});
-$('resetRotation').addEventListener('click', () => {
-  viewer.resetModelRotation();
-  ['x', 'y', 'z'].forEach(axis => {
-    $('rotate' + axis.toUpperCase()).value = 0;
-    $('rotate' + axis.toUpperCase() + 'Value').value = 0;
-  });
-});
-$('autoRotate').addEventListener('change', e => viewer.setAutoRotate(e.target.checked));
-$('modelColor').addEventListener('input', e => viewer.setColor(e.target.value));
+['x','y','z'].forEach(axis => { const slider = $('rotate' + axis.toUpperCase()), output = $('rotate' + axis.toUpperCase() + 'Value'); slider.addEventListener('input', () => { output.value = slider.value; viewer.setModelRotation(axis, Number(slider.value)); }); output.addEventListener('change', () => { const value = Math.max(-180, Math.min(180, Number(output.value) || 0)); output.value = value; slider.value = value; viewer.setModelRotation(axis, value); }); });
+$('resetRotation').addEventListener('click', () => { viewer.resetModelRotation(); ['x','y','z'].forEach(axis => { $('rotate' + axis.toUpperCase()).value = 0; $('rotate' + axis.toUpperCase() + 'Value').value = 0; }); });
+$('autoRotate').addEventListener('change', e => viewer.setAutoRotate(e.target.checked)); $('modelColor').addEventListener('input', e => viewer.setColor(e.target.value));
 document.querySelectorAll('[data-view], [data-camera]').forEach(button => button.addEventListener('click', () => viewer.setView(button.dataset.view || button.dataset.camera)));
+document.querySelectorAll('.tool-tab').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.tool-tab').forEach(t => t.classList.toggle('active', t === tab)); ['cutPanel','infoPanel','viewPanel','rotationPanel','movePanel'].forEach(id => $(id).hidden = id !== tab.dataset.panel); }));
+const viewport = $('viewport'); viewport.addEventListener('dragover', e => { e.preventDefault(); viewport.classList.add('dragging'); }); viewport.addEventListener('dragleave', () => viewport.classList.remove('dragging')); viewport.addEventListener('drop', e => { e.preventDefault(); viewport.classList.remove('dragging'); const file = e.dataTransfer.files?.[0]; if (file) loadFile(file); });
+document.querySelectorAll('.group-toggle').forEach(toggle => toggle.addEventListener('click', () => { const expanded = toggle.getAttribute('aria-expanded') === 'true'; toggle.setAttribute('aria-expanded', String(!expanded)); $(toggle.getAttribute('aria-controls')).hidden = expanded; }));
 
-document.querySelectorAll('.tool-tab').forEach(tab => tab.addEventListener('click', () => {
-  document.querySelectorAll('.tool-tab').forEach(t => t.classList.toggle('active', t === tab));
-  ['cutPanel', 'infoPanel', 'viewPanel', 'rotationPanel', 'movePanel'].forEach(id => $(id).hidden = id !== tab.dataset.panel);
-}));
-
-// Drag-and-drop is available on desktop; mobile users use the native file picker.
-const viewport = $('viewport');
-viewport.addEventListener('dragover', e => { e.preventDefault(); viewport.classList.add('dragging'); });
-viewport.addEventListener('dragleave', () => viewport.classList.remove('dragging'));
-viewport.addEventListener('drop', e => {
-  e.preventDefault(); viewport.classList.remove('dragging');
-  const file = e.dataTransfer.files?.[0];
-  if (file) loadFile(file);
-});
-
-
-document.querySelectorAll('.group-toggle').forEach(toggle => {
-  toggle.addEventListener('click', () => {
-    const expanded = toggle.getAttribute('aria-expanded') === 'true';
-    toggle.setAttribute('aria-expanded', String(!expanded));
-    $(toggle.getAttribute('aria-controls')).hidden = expanded;
-  });
-});
-
-
-// Profile catalogue sourced from OrcaSlicer vendor bundles.
-// These are slicer-bundled profiles; maintenance/approval varies by manufacturer.
 let printerCatalog = null;
-let selectedProcessProfile = null;
-const fallbackProfile = { name: 'Generic estimate · 0.20 mm', layerHeight: 0.20, wall: 0.28, overhead: 1.35 };
+const fallbackProfile = { name: 'Generic estimate · 0.20 mm', layerHeight: 0.20 };
 async function loadPrinterCatalog() {
   try {
-    const response = await fetch('./data/printer-catalog.json?v=20261101-18');
+    const response = await fetch('./data/printer-catalog.json?v=20261102-01');
     if (!response.ok) throw new Error('Catalogue request failed');
     printerCatalog = await response.json();
-    const manufacturer = $('sliceManufacturer');
-    manufacturer.innerHTML = '<option value="">Choose manufacturer</option>' +
-      printerCatalog.vendors.map(v => '<option value="' + v.id + '">' + v.name + '</option>').join('');
+    $('sliceManufacturer').innerHTML = '<option value="">Choose manufacturer</option>' + printerCatalog.vendors.map(v => '<option value="' + v.id + '">' + v.name + '</option>').join('');
     $('slicePrinterNote').textContent = 'Choose a manufacturer and exact printer model. Profile names are taken from the OrcaSlicer bundled catalogue; not every profile is manufacturer-maintained.';
-  } catch (error) {
-    console.error('Printer profile catalogue failed to load:', error);
-    $('slicePrinterNote').textContent = 'Printer catalogue unavailable. Generic estimate is being used.';
-    $('sliceProfile').innerHTML = '<option value="generic">Generic estimate · 0.20 mm</option>';
-  }
+  } catch (error) { console.error('Printer profile catalogue failed to load:', error); $('slicePrinterNote').textContent = 'Printer catalogue unavailable. Generic estimate is being used.'; }
 }
-function selectedVendor() {
-  return printerCatalog?.vendors.find(v => v.id === $('sliceManufacturer').value) || null;
-}
-function modelAlias(model, vendor) {
-  return model.toLowerCase().startsWith(vendor.toLowerCase()) ? model.slice(vendor.length).trim() : model;
-}
+function selectedVendor() { return printerCatalog?.vendors.find(v => v.id === $('sliceManufacturer').value) || null; }
+function modelAlias(model, vendor) { return model.toLowerCase().startsWith(vendor.toLowerCase()) ? model.slice(vendor.length).trim() : model; }
 function updatePrinterProfiles() {
-  const vendor = selectedVendor();
-  const modelSelect = $('slicePrinter');
-  const previousModel = modelSelect.value;
-  modelSelect.innerHTML = '<option value="">Choose printer model</option>' +
-    (vendor ? vendor.models.map((m,i) => '<option value="' + i + '">' + m + '</option>').join('') : '');
+  const vendor = selectedVendor(), modelSelect = $('slicePrinter'), previousModel = modelSelect.value;
+  modelSelect.innerHTML = '<option value="">Choose printer model</option>' + (vendor ? vendor.models.map((m,i) => '<option value="' + i + '">' + m + '</option>').join('') : '');
   if (vendor && previousModel && Number(previousModel) < vendor.models.length) modelSelect.value = previousModel;
   updateProcessProfiles();
 }
-function updateProcessProfiles() {
-  const vendor = selectedVendor();
-  const modelSelect = $('slicePrinter');
-  const profileSelect = $('sliceProfile');
+function getProcessProfiles() {
+  const vendor = selectedVendor(), modelSelect = $('slicePrinter');
   const model = vendor && modelSelect.value !== '' ? vendor.models[Number(modelSelect.value)] : '';
   const alias = model && vendor ? modelAlias(model, vendor.name).toLowerCase() : '';
-  let profiles = vendor && model ? vendor.processes.filter(p => p.name.toLowerCase().includes(alias)) : [];
-  // If no exact model-targeted presets are bundled, do not offer another model's settings.
-  selectedProcessProfile = null;
-  if (!profiles.length) {
-    profileSelect.innerHTML = '<option value="generic">Generic estimate · 0.20 mm</option>';
-    profileSelect.value = 'generic';
-    $('slicePrinterNote').textContent = model
-      ? 'No model-specific process presets were found in this catalogue entry. Using a generic estimate instead.'
-      : 'Choose a manufacturer and exact printer model. Profile names are taken from the OrcaSlicer bundled catalogue; not every profile is manufacturer-maintained.';
-    return;
-  }
-  profileSelect.innerHTML = profiles.map((p,i) => '<option value="' + i + '">' + p.name + '</option>').join('');
-  selectedProcessProfile = profiles[0];
-  profileSelect.value = '0';
+  return vendor && model ? vendor.processes.filter(p => p.name.toLowerCase().includes(alias)) : [];
+}
+function updateProcessProfiles() {
+  const vendor = selectedVendor(), modelSelect = $('slicePrinter'), profileSelect = $('sliceProfile'), model = vendor && modelSelect.value !== '' ? vendor.models[Number(modelSelect.value)] : '', profiles = getProcessProfiles();
+  if (!profiles.length) { profileSelect.innerHTML = '<option value="generic">Generic estimate · 0.20 mm</option>'; profileSelect.value = 'generic'; $('slicePrinterNote').textContent = model ? 'No model-specific process presets were found. Using a generic estimate.' : 'Choose a manufacturer and exact printer model.'; return; }
+  profileSelect.innerHTML = profiles.map((p,i) => '<option value="' + i + '">' + p.name + '</option>').join(''); profileSelect.value = '0';
   $('slicePrinterNote').textContent = vendor.name + ' · ' + model + '. Process preset names are sourced from the OrcaSlicer bundle. The estimator uses the preset layer height; it does not execute the full slicer profile.';
 }
-function activeProfile() {
-  const vendor = selectedVendor();
-  const modelSelect = $('slicePrinter');
-  const model = vendor && modelSelect.value !== '' ? vendor.models[Number(modelSelect.value)] : '';
-  const alias = model && vendor ? modelAlias(model, vendor.name).toLowerCase() : '';
-  const profiles = vendor && model ? vendor.processes.filter(p => p.name.toLowerCase().includes(alias)) : [];
-  const chosen = profiles[Number($('sliceProfile').value)];
-  const layer = chosen?.layerHeight || fallbackProfile.layerHeight;
-  return { name: chosen?.name || fallbackProfile.name, layer, wall: .28, overhead: 1.35 };
-}
-const materials = {
-  pla: { density: 1.24, flow: 8.5 },
-  petg: { density: 1.27, flow: 7.5 },
-  abs: { density: 1.04, flow: 9 },
-  asa: { density: 1.07, flow: 8.5 },
-  tpu: { density: 1.21, flow: 3.5 }
-};
+function activeProfile() { const profiles = getProcessProfiles(), chosen = profiles[Number($('sliceProfile').value)], layer = chosen?.layerHeight || fallbackProfile.layerHeight; return { name: chosen?.name || fallbackProfile.name, layer }; }
+const materials = { pla: { density: 1.24, flow: 8.5 }, petg: { density: 1.27, flow: 7.5 }, abs: { density: 1.04, flow: 9 }, asa: { density: 1.07, flow: 8.5 }, tpu: { density: 1.21, flow: 3.5 } };
 function estimatePrint() {
-  if (!modelInfo?.volume || modelInfo.volume <= 0) {
-    toast('Could not calculate mesh volume. Check that the model is a closed solid.');
-    return;
+  if (!modelInfo?.volume || modelInfo.volume <= 0) { toast('Could not calculate mesh volume. Check that the model is a closed solid.'); return; }
+  const profile = activeProfile(), material = materials[$('sliceMaterial').value], infill = Number($('sliceInfill').value) / 100, height = modelInfo.size.z;
+  const mode = $('sliceModelType').value;
+  const wallThickness = 0.8;
+  let printedVolume;
+  if (mode === 'shell') {
+    const shellVolume = Math.max(0, modelInfo.surfaceArea || 0) * wallThickness;
+    const infillVolume = modelInfo.volume * infill * 0.72;
+    printedVolume = Math.min(modelInfo.volume, shellVolume + infillVolume);
+  } else {
+    const materialFactor = Math.min(1, Math.max(0.12, 0.28 + infill * (1 - 0.28) * 0.72));
+    printedVolume = modelInfo.volume * materialFactor;
   }
-  const profile = activeProfile();
-  const material = materials[$('sliceMaterial').value];
-  const infill = Number($('sliceInfill').value) / 100;
-  const height = modelInfo.size.z;
-  // Surface shell plus an approximate infill contribution. Open/non-manifold meshes
-  // can make volume estimates inaccurate; this is deliberately a planning estimate.
-  const materialFactor = Math.min(1, Math.max(0.12, profile.wall + infill * (1 - profile.wall) * 0.72));
-  const printedVolume = modelInfo.volume * materialFactor;
   const grams = printedVolume / 1000 * material.density;
   const filamentMm = printedVolume / (Math.PI * Math.pow(1.75 / 2, 2));
   const layers = Math.max(1, Math.ceil(height / profile.layer));
   const extrusionMinutes = printedVolume / material.flow / 60;
-  const timeMinutes = (extrusionMinutes * profile.overhead + layers * 0.16) * (materials[$('sliceMaterial').value] === materials.tpu ? 1.25 : 1);
+  const timeMinutes = (extrusionMinutes * 1.35 + layers * 0.16) * (materials[$('sliceMaterial').value] === materials.tpu ? 1.25 : 1);
   $('sliceGrams').textContent = grams < 10 ? grams.toFixed(1) + ' g' : Math.round(grams) + ' g';
   $('sliceLength').textContent = (filamentMm / 1000).toFixed(2) + ' m of 1.75 mm filament';
-  $('sliceTime').textContent = formatDuration(timeMinutes);
-  $('sliceLayers').textContent = layers.toLocaleString() + ' layers';
-  $('sliceNote').textContent = 'Planning estimate only. Uses the selected preset name and layer height, but does not import or execute all printer, filament, speed, support, wall or G-code settings. Assumes 1.75 mm filament and 0.4 mm nozzle; actual results can differ substantially.';
+  $('sliceTime').textContent = formatDuration(timeMinutes); $('sliceLayers').textContent = layers.toLocaleString() + ' layers';
+  $('sliceNote').textContent = mode === 'shell' ? 'Shell estimate assumes approximately 0.8 mm of printed wall material plus the selected infill. It is a planning estimate, not a full slicer calculation.' : 'Solid-model estimate assumes the loaded model volume is a solid and applies the selected infill. It is a planning estimate, not a full slicer calculation.';
 }
-function formatDuration(minutes) {
-  const total = Math.max(1, Math.round(minutes));
-  const hours = Math.floor(total / 60), mins = total % 60;
-  return hours ? hours + ' h ' + mins + ' min' : mins + ' min';
-}
-function openSlice() {
-  if (!currentFile) { toast('Open a 3D model first.'); return; }
-  $('sliceModal').hidden = false;
-  estimatePrint();
-}
-$('sliceButton').addEventListener('click', openSlice);
-$('closeSlice').addEventListener('click', () => $('sliceModal').hidden = true);
-$('sliceModal').addEventListener('click', event => {
-  if (event.target === $('sliceModal')) $('sliceModal').hidden = true;
-});
-$('sliceInfill').addEventListener('input', () => {
-  $('infillLabel').textContent = $('sliceInfill').value + '%';
-  if (!$('sliceModal').hidden) estimatePrint();
-});
-$('sliceManufacturer').addEventListener('change', () => {
-  updatePrinterProfiles();
-  if (!$('sliceModal').hidden) estimatePrint();
-});
-$('slicePrinter').addEventListener('change', () => {
-  updateProcessProfiles();
-  if (!$('sliceModal').hidden) estimatePrint();
-});
-['sliceProfile','sliceMaterial'].forEach(id => $(id).addEventListener('change', () => {
-  if (!$('sliceModal').hidden) estimatePrint();
-}));
-$('recalculateSlice').addEventListener('click', estimatePrint);
-loadPrinterCatalog();
+function formatDuration(minutes) { const total = Math.max(1, Math.round(minutes)), hours = Math.floor(total / 60), mins = total % 60; return hours ? hours + ' h ' + mins + ' min' : mins + ' min'; }
+function openSlice() { if (!currentFile) { toast('Open a 3D model first.'); return; } $('sliceModal').hidden = false; estimatePrint(); }
+$('sliceButton').addEventListener('click', openSlice); $('closeSlice').addEventListener('click', () => $('sliceModal').hidden = true); $('sliceModal').addEventListener('click', event => { if (event.target === $('sliceModal')) $('sliceModal').hidden = true; });
+$('sliceInfill').addEventListener('input', () => { $('infillLabel').textContent = $('sliceInfill').value + '%'; if (!$('sliceModal').hidden) estimatePrint(); });
+$('sliceManufacturer').addEventListener('change', () => { updatePrinterProfiles(); if (!$('sliceModal').hidden) estimatePrint(); }); $('slicePrinter').addEventListener('change', () => { updateProcessProfiles(); if (!$('sliceModal').hidden) estimatePrint(); });
+['sliceProfile','sliceMaterial','sliceModelType'].forEach(id => $(id).addEventListener('change', () => { if (!$('sliceModal').hidden) estimatePrint(); })); $('recalculateSlice').addEventListener('click', estimatePrint); loadPrinterCatalog();
