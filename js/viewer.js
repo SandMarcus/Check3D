@@ -277,9 +277,30 @@ export function createViewer(canvas, container) {
     if (!segments.length) { cutDiagnostics = stats; return; }
 
     // Weld duplicated STL triangle vertices into a graph; closed contours have degree 2.
-    const nodeKey = point => [point.x, point.y, point.z].map(value => Math.round(value / eps)).join(',');
-    const nodes = new Map(), adjacency = new Map(), edgeKeys = new Set();
-    const getNode = point => { const key=nodeKey(point); if(!nodes.has(key)) nodes.set(key,point.clone()); if(!adjacency.has(key)) adjacency.set(key,[]); return key; };
+    // Spatial welding checks adjacent buckets as well, avoiding false splits at bucket boundaries.
+    const bucketCoords = point => [Math.floor(point.x / eps), Math.floor(point.y / eps), Math.floor(point.z / eps)];
+    const bucketKey = (x, y, z) => x + ',' + y + ',' + z;
+    const nodes = new Map(), adjacency = new Map(), edgeKeys = new Set(), nodeBuckets = new Map();
+    const getNode = point => {
+      const [bx, by, bz] = bucketCoords(point);
+      let nearestKey = null, nearestDistance = eps;
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+        const bucket = nodeBuckets.get(bucketKey(bx + dx, by + dy, bz + dz));
+        if (!bucket) continue;
+        for (const key of bucket) {
+          const distance = nodes.get(key).distanceTo(point);
+          if (distance <= nearestDistance) { nearestDistance = distance; nearestKey = key; }
+        }
+      }
+      if (nearestKey) return nearestKey;
+      const key = bucketKey(bx, by, bz) + '#' + nodes.size;
+      nodes.set(key, point.clone());
+      adjacency.set(key, []);
+      const bucketId = bucketKey(bx, by, bz);
+      if (!nodeBuckets.has(bucketId)) nodeBuckets.set(bucketId, []);
+      nodeBuckets.get(bucketId).push(key);
+      return key;
+    };
     for (const segment of segments) {
       const a=getNode(segment[0]), b=getNode(segment[1]); if(a===b) continue;
       const edgeKey=a<b?a+'|'+b:b+'|'+a; if(edgeKeys.has(edgeKey)) continue;
