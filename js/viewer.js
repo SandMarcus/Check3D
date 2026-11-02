@@ -626,6 +626,8 @@ export function createViewer(canvas, container) {
     resetModelPosition() { if (!modelPivot) return; modelPosition.x = modelPosition.y = modelPosition.z = 0; modelPivot.position.copy(pivotOrigin); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
     setModelRotation(axis, degrees) { if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return; modelRotation[axis] = THREE.MathUtils.clamp(degrees, -180, 180); modelPivot.rotation.set(THREE.MathUtils.degToRad(modelRotation.x), THREE.MathUtils.degToRad(modelRotation.y), THREE.MathUtils.degToRad(modelRotation.z)); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
     resetModelRotation() { if (!modelPivot) return; modelRotation.x = modelRotation.y = modelRotation.z = 0; modelPivot.rotation.set(0, 0, 0); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
+    clearIntegrityHighlight,
+    highlightIntegrityObject,
     setColor(value) { eachMaterial(material => { material.userData.check3dUserColor = value; if (material.color && displayMode !== 'clay') material.color.set(value); }); },
     setAutoRotate(value) { controls.autoRotate = value; },
     setView(view) { if (!modelRoot || !bounds) return; const center = bounds.getCenter(new THREE.Vector3()), size = bounds.getSize(new THREE.Vector3()), d = Math.max(size.x, size.y, size.z, 1) * 2.2; if (view === 'front') camera.position.set(center.x, center.y - d, center.z); if (view === 'top') camera.position.set(center.x, center.y, center.z + d); if (view === 'side') camera.position.set(center.x + d, center.y, center.z); controls.target.copy(center); controls.update(); }
