@@ -1,6 +1,6 @@
-import { createViewer } from './viewer.js?v=20261102-21';
+import { createViewer } from './viewer.js?v=20261102-23';
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.2';
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
 let currentFile = null;
