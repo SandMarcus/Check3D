@@ -248,7 +248,7 @@ export function createViewer(canvas, container) {
     const segments = [], p = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
     const stats = { triangles: 0, intersecting: 0, segments: 0, nodes: 0, degree1: 0, degree2: 0, degree3plus: 0, loops: 0, regions: 0, capTriangles: 0 };
     const planeDistance = point => cutPlane.distanceToPoint(point);
-    const eps = Math.max(bounds.getSize(new THREE.Vector3()).length() * 1e-6, 1e-5);
+    const eps = Math.max(bounds.getSize(new THREE.Vector3()).length() * 2e-6, 2e-5);
 
     modelRoot.updateMatrixWorld(true);
     modelRoot.traverse(object => {
@@ -461,6 +461,7 @@ export function createViewer(canvas, container) {
     load, fit, getInfo,
     getCutDiagnostics() { return { ...cutDiagnostics, openNodePositions: (cutDiagnostics.openNodePositions || []).map(point => [...point]), nearestOpenDistances: [...(cutDiagnostics.nearestOpenDistances || [])], endpointPairs: (cutDiagnostics.endpointPairs || []).map(pair => ({ a: [...pair.a], b: [...pair.b], distance: pair.distance })) }; },
     setCut(axis, ratio, invert = false) { cutAxis = axis; cutRatio = Math.max(0, Math.min(1, ratio)); inverted = invert; applyCut(); },
+    setCutPosition(axis, position, invert = false) { if (!bounds) return; const i = { x: 0, y: 1, z: 2 }[axis]; const lo = bounds.min.getComponent(i), hi = bounds.max.getComponent(i); const ratio = hi === lo ? 0 : (Number(position) - lo) / (hi - lo); cutAxis = axis; cutRatio = Math.max(0, Math.min(1, ratio)); inverted = invert; applyCut(); },
     clearCut() { eachMaterial(material => { material.clippingPlanes = []; material.needsUpdate = true; }); disposeCap(); cutRatio = 0; inverted = false; },
     getCutPosition() { if (!bounds) return 0; const i = { x: 0, y: 1, z: 2 }[cutAxis]; return bounds.min.getComponent(i) + (bounds.max.getComponent(i) - bounds.min.getComponent(i)) * cutRatio; },
     getCutBounds() { if (!bounds) return { min: 0, max: 0 }; const i = { x: 0, y: 1, z: 2 }[cutAxis]; return { min: bounds.min.getComponent(i), max: bounds.max.getComponent(i) }; },
