@@ -286,9 +286,13 @@ export function createViewer(canvas, container) {
       edgeKeys.add(edgeKey); adjacency.get(a).push(b); adjacency.get(b).push(a);
     }
     stats.nodes = nodes.size;
-    for (const neighbors of adjacency.values()) {
-      if (neighbors.length === 1) stats.degree1++;
-      else if (neighbors.length === 2) stats.degree2++;
+    stats.openNodePositions = [];
+    for (const [key, neighbors] of adjacency) {
+      if (neighbors.length === 1) {
+        stats.degree1++;
+        const point = nodes.get(key);
+        stats.openNodePositions.push([point.x, point.y, point.z].map(value => Number(value.toFixed(2))));
+      } else if (neighbors.length === 2) stats.degree2++;
       else if (neighbors.length > 2) stats.degree3plus++;
     }
     const loops=[], visitedEdges=new Set();
@@ -404,7 +408,7 @@ export function createViewer(canvas, container) {
 
   return {
     load, fit, getInfo,
-    getCutDiagnostics() { return { ...cutDiagnostics }; },
+    getCutDiagnostics() { return { ...cutDiagnostics, openNodePositions: (cutDiagnostics.openNodePositions || []).map(point => [...point]) }; },
     setCut(axis, ratio, invert = false) { cutAxis = axis; cutRatio = Math.max(0, Math.min(1, ratio)); inverted = invert; applyCut(); },
     clearCut() { eachMaterial(material => { material.clippingPlanes = []; material.needsUpdate = true; }); disposeCap(); cutRatio = 0; inverted = false; },
     getCutPosition() { if (!bounds) return 0; const i = { x: 0, y: 1, z: 2 }[cutAxis]; return bounds.min.getComponent(i) + (bounds.max.getComponent(i) - bounds.min.getComponent(i)) * cutRatio; },
