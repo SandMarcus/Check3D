@@ -1,6 +1,6 @@
-import { createViewer } from './viewer.js?v=20261102-19';
+import { createViewer } from './viewer.js?v=20261102-20';
 
-const APP_VERSION = '1.2.8';
+const APP_VERSION = '1.2.9';
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
 let currentFile = null;
@@ -42,6 +42,27 @@ async function loadFile(file) {
   $('modelName').textContent = file.name; $('fileSize').textContent = formatBytes(file.size);
   $('triangleCount').textContent = info.triangles.toLocaleString();
   $('meshIntegrity').textContent = info.watertight ? 'Watertight' : `Mesh issues (${info.boundaryEdges} open · ${info.nonManifoldEdges} non-manifold · ${info.orientationErrors} winding · ${info.degenerateTriangles} degenerate)`;
+  const issueCount = info.boundaryEdges + info.nonManifoldEdges + info.orientationErrors + info.degenerateTriangles;
+  $('integrityStatus').textContent = info.watertight ? 'PASS' : 'ISSUES FOUND';
+  $('integrityStatus').className = 'integrity-status ' + (info.watertight ? 'is-pass' : 'is-warning');
+  $('integrityHeadline').textContent = info.watertight ? 'No topology issues detected' : issueCount.toLocaleString() + ' topology findings';
+  $('integritySummary').textContent = info.watertight
+    ? info.triangles.toLocaleString() + ' triangles checked. The mesh passed all four integrity checks.'
+    : info.triangles.toLocaleString() + ' valid triangles checked. Review the findings below before exporting or printing.';
+  $('openEdgeCount').textContent = info.boundaryEdges.toLocaleString();
+  $('nonManifoldCount').textContent = info.nonManifoldEdges.toLocaleString();
+  $('windingCount').textContent = info.orientationErrors.toLocaleString();
+  $('degenerateCount').textContent = info.degenerateTriangles.toLocaleString();
+  const checks = [
+    ['Open edges', info.boundaryEdges],
+    ['Non-manifold edges', info.nonManifoldEdges],
+    ['Face winding', info.orientationErrors],
+    ['Degenerate triangles', info.degenerateTriangles]
+  ];
+  $('integrityChecklist').innerHTML = checks.map(([label, count]) =>
+    '<div class="integrity-check"><span>' + label + '</span><strong class="' + (count ? 'has-issues' : 'is-clear') + '">' +
+    (count ? count.toLocaleString() + ' found' : 'Clear') + '</strong></div>'
+  ).join('');
   $('dimX').textContent = `${info.size.x.toFixed(2)} mm`; $('dimY').textContent = `${info.size.y.toFixed(2)} mm`; $('dimZ').textContent = `${info.size.z.toFixed(2)} mm`;
   $('modelSizeHud').textContent = `${info.size.x.toFixed(1)} × ${info.size.y.toFixed(1)} × ${info.size.z.toFixed(1)} mm`;
   $('bugReportButton').disabled = false;
