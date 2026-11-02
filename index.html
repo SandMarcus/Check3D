@@ -7,142 +7,24 @@
   <title>Check3D</title>
   <link rel="stylesheet" href="./css/style.css?v=20261101-18">
   <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"
-      }
-    }
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.2/examples/jsm/"}}
   </script>
 </head>
 <body>
   <main class="app">
-    <header class="topbar">
-      <div class="brand"><span class="brand-mark">▧</span><span>Check3D</span></div>
-      <div class="top-actions">
-        <button class="icon-button" id="sliceButton" aria-label="Estimate print" title="Estimate print">▤ <span class="desktop-label">Slice</span></button>
-        <button class="icon-button" id="openButton" aria-label="Open 3D file" title="Open 3D file">＋ <span class="desktop-label">Open file</span></button>
-        <button class="icon-button" id="resetView" aria-label="Fit model to view" title="Fit model">⟲</button>
-      </div>
-      <input id="fileInput" type="file" accept="*/*" hidden>
-    </header>
-
+    <header class="topbar"><div class="brand"><span class="brand-mark">▧</span><span>Check3D</span></div><div class="top-actions"><button class="icon-button" id="sliceButton" aria-label="Estimate print" title="Estimate print">▤ <span class="desktop-label">Slice</span></button><button class="icon-button" id="openButton" aria-label="Open 3D file" title="Open 3D file">＋ <span class="desktop-label">Open file</span></button><button class="icon-button" id="resetView" aria-label="Fit model to view" title="Fit model">⟲</button></div><input id="fileInput" type="file" accept="*/*" hidden></header>
     <section class="workspace">
-      <div class="viewport" id="viewport">
-        <canvas id="viewerCanvas" aria-label="Interactive 3D model viewer"></canvas>
-        <div class="welcome" id="welcome">
-          <div class="welcome-icon">▱</div>
-          <h1>View your 3D models</h1>
-          <p>Choose a 3D file to get started.</p>
-          <button class="primary-button" id="welcomeOpen">＋ Open 3D file</button>
-          <span class="subtle">Your file stays on this device.</span>
-        </div>
-        <div class="model-hud" id="modelHud" hidden>
-          <span id="modelName">No model</span><span id="modelSizeHud"></span>
-        </div>
-        <div class="view-cube" aria-label="Quick camera views">
-          <button data-view="top">Top</button><button data-view="front">Front</button><button data-view="side">Side</button>
-        </div>
-        <div class="viewport-hint" id="viewportHint">One finger to rotate · Two fingers to zoom and pan</div>
-      </div>
-
-      <nav class="tool-tabs" aria-label="Viewer tools">
-        <button class="tool-tab active" data-panel="cutPanel"><span>◫</span>Cut</button>
-        <button class="tool-tab" data-panel="infoPanel"><span>▤</span>Info</button>
-        <button class="tool-tab" data-panel="viewPanel"><span>◉</span>View</button>
-        <button class="tool-tab" data-panel="rotationPanel"><span>↻</span>Rotate</button>
-        <button class="tool-tab" data-panel="movePanel"><span>↔</span>Move</button>
-      </nav>
-
-      <section class="control-panel" id="cutPanel">
-        <div class="panel-heading"><div><h2>Section cut</h2><p>Slide through the model to inspect its interior.</p></div><button class="text-button" id="clearCut">Clear cut</button></div>
-        <div class="axis-picker" role="group" aria-label="Cut direction">
-          <button class="axis-button" data-axis="x">X <small>Left / right</small></button>
-          <button class="axis-button" data-axis="y">Y <small>Front / back</small></button>
-          <button class="axis-button selected" data-axis="z">Z <small>Top / bottom</small></button>
-        </div>
-        <div class="slider-heading"><label for="cutSlider">Cut position</label><output id="cutOutput">0 mm</output></div>
-        <input id="cutSlider" class="range" type="range" min="0" max="1000" value="0" disabled>
-        <div class="range-ends"><span id="rangeMin">Min</span><span id="rangeMax">Max</span></div>
-        <div class="cut-options">
-          <button class="option-button" id="centerCut" disabled>Center cut</button>
-          <button class="option-button" id="invertCut" aria-pressed="false" disabled>Invert side</button>
-          <label class="check-option"><input type="checkbox" id="showGrid" checked> Grid</label>
-        </div>
-        <p class="note">The cut hides one side of the mesh. The exposed surface is not capped in this first version.</p>
-      </section>
-
-      <section class="control-panel" id="infoPanel" hidden>
-        <div class="panel-heading"><div><h2>Model information</h2><p>Measurements from the loaded mesh.</p></div></div>
-        <div class="info-grid">
-          <div class="info-card"><span>Triangles</span><strong id="triangleCount">—</strong></div>
-          <div class="info-card"><span>File size</span><strong id="fileSize">—</strong></div>
-          <div class="info-card"><span>Width (X)</span><strong id="dimX">—</strong></div>
-          <div class="info-card"><span>Depth (Y)</span><strong id="dimY">—</strong></div>
-          <div class="info-card"><span>Height (Z)</span><strong id="dimZ">—</strong></div>
-        </div>
-        <p class="note">STL files do not reliably store units. Dimensions are displayed as millimetres by convention.</p>
-      </section>
-
-      <section class="control-panel" id="viewPanel" hidden>
-        <div class="panel-heading"><div><h2>Display</h2><p>Adjust how the model is shown.</p></div></div>
-        <div class="option-group">
-          <button class="group-toggle" type="button" aria-expanded="true" aria-controls="displayOptions"><span>Display options</span><span class="group-chevron">⌄</span></button>
-          <div class="group-content display-options" id="displayOptions">
-            <label class="check-option"><input type="checkbox" id="wireframe"> Wireframe</label>
-            <label class="check-option"><input type="checkbox" id="xray"> X-ray</label>
-            <label class="check-option"><input type="checkbox" id="clay"> Clay</label>
-            <label class="check-option"><input type="checkbox" id="gridToggle" checked> Show build grid</label>
-            <label class="check-option"><input type="checkbox" id="autoRotate"> Auto rotate</label>
-          </div>
-        </div>
-        <div class="option-group">
-          <button class="group-toggle" type="button" aria-expanded="true" aria-controls="appearanceOptions"><span>Appearance</span><span class="group-chevron">⌄</span></button>
-          <div class="group-content" id="appearanceOptions">
-            <div class="color-row"><label for="modelColor">Model color</label><input type="color" id="modelColor" value="#b9c5d4"></div>
-            <div class="color-row"><label for="backgroundSelect">Background</label><select id="backgroundSelect"><option value="dark">Dark studio</option><option value="white">White</option><option value="sunset">Warm studio</option></select></div>
-          </div>
-        </div>
-        <div class="button-row"><button class="option-button" data-camera="front">Front view</button><button class="option-button" data-camera="top">Top view</button><button class="option-button" data-camera="side">Side view</button></div>
-      </section>
-
-      <section class="control-panel" id="rotationPanel" hidden>
-        <div class="panel-heading"><div><h2>Model rotation</h2><p>Drag from the centre to rotate in either direction.</p></div><button class="text-button" id="resetRotation">Reset</button></div>
-        <div class="rotation-axis"><label for="rotateX">X <input id="rotateXValue" class="value-input" type="number" min="-180" max="180" step="1" value="0" aria-label="Rotation X in degrees"></label><div class="rotation-scale"><span>−</span><input id="rotateX" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
-        <div class="rotation-axis"><label for="rotateY">Y <input id="rotateYValue" class="value-input" type="number" min="-180" max="180" step="1" value="0" aria-label="Rotation Y in degrees"></label><div class="rotation-scale"><span>−</span><input id="rotateY" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
-        <div class="rotation-axis"><label for="rotateZ">Z <input id="rotateZValue" class="value-input" type="number" min="-180" max="180" step="1" value="0" aria-label="Rotation Z in degrees"></label><div class="rotation-scale"><span>−</span><input id="rotateZ" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div>
-      </section>
-
-      <section class="control-panel" id="movePanel" hidden>
-        <div class="panel-heading"><div><h2>Move model</h2><p>Adjust position along each axis.</p></div><button class="text-button" id="resetMove">Reset</button></div>
-        <div class="move-axis"><label for="moveX">X <input id="moveXValue" class="value-input" type="number" step="0.1" value="0" aria-label="Position X in millimetres"></label><div class="move-scale"><span>-</span><input id="moveX" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div>
-        <div class="move-axis"><label for="moveY">Y <input id="moveYValue" class="value-input" type="number" step="0.1" value="0" aria-label="Position Y in millimetres"></label><div class="move-scale"><span>-</span><input id="moveY" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div>
-        <div class="move-axis"><label for="moveZ">Z <input id="moveZValue" class="value-input" type="number" step="0.1" value="0" aria-label="Position Z in millimetres"></label><div class="move-scale"><span>-</span><input id="moveZ" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div>
-      </section>
-
+      <div class="viewport" id="viewport"><canvas id="viewerCanvas" aria-label="Interactive 3D model viewer"></canvas><div class="welcome" id="welcome"><div class="welcome-icon">▱</div><h1>View your 3D models</h1><p>Choose a 3D file to get started.</p><button class="primary-button" id="welcomeOpen">＋ Open 3D file</button><span class="subtle">Your file stays on this device.</span></div><div class="model-hud" id="modelHud" hidden><span id="modelName">No model</span><span id="modelSizeHud"></span></div><div class="view-cube" aria-label="Quick camera views"><button data-view="top">Top</button><button data-view="front">Front</button><button data-view="side">Side</button></div><div class="viewport-hint" id="viewportHint">One finger to rotate · Two fingers to zoom and pan</div></div>
+      <nav class="tool-tabs" aria-label="Viewer tools"><button class="tool-tab active" data-panel="cutPanel"><span>◫</span>Cut</button><button class="tool-tab" data-panel="infoPanel"><span>▤</span>Info</button><button class="tool-tab" data-panel="viewPanel"><span>◉</span>View</button><button class="tool-tab" data-panel="rotationPanel"><span>↻</span>Rotate</button><button class="tool-tab" data-panel="movePanel"><span>↔</span>Move</button></nav>
+      <section class="control-panel" id="cutPanel"><div class="panel-heading"><div><h2>Section cut</h2><p>Slide through the model to inspect its interior.</p></div><button class="text-button" id="clearCut">Clear cut</button></div><div class="axis-picker" role="group" aria-label="Cut direction"><button class="axis-button" data-axis="x">X <small>Left / right</small></button><button class="axis-button" data-axis="y">Y <small>Front / back</small></button><button class="axis-button selected" data-axis="z">Z <small>Top / bottom</small></button></div><div class="slider-heading"><label for="cutSlider">Cut position</label><output id="cutOutput">0 mm</output></div><input id="cutSlider" class="range" type="range" min="0" max="1000" value="0" disabled><div class="range-ends"><span id="rangeMin">Min</span><span id="rangeMax">Max</span></div><div class="cut-options"><button class="option-button" id="centerCut" disabled>Center cut</button><button class="option-button" id="invertCut" aria-pressed="false" disabled>Invert side</button><label class="check-option"><input type="checkbox" id="showGrid" checked> Grid</label></div><p class="note">The cut hides one side of the mesh. The exposed surface is not capped in this first version.</p></section>
+      <section class="control-panel" id="infoPanel" hidden><div class="panel-heading"><div><h2>Model information</h2><p>Measurements from the loaded mesh.</p></div></div><div class="info-grid"><div class="info-card"><span>Triangles</span><strong id="triangleCount">—</strong></div><div class="info-card"><span>File size</span><strong id="fileSize">—</strong></div><div class="info-card"><span>Width (X)</span><strong id="dimX">—</strong></div><div class="info-card"><span>Depth (Y)</span><strong id="dimY">—</strong></div><div class="info-card"><span>Height (Z)</span><strong id="dimZ">—</strong></div></div><p class="note">STL files do not reliably store units. Dimensions are displayed as millimetres by convention.</p></section>
+      <section class="control-panel" id="viewPanel" hidden><div class="panel-heading"><div><h2>Display</h2><p>Adjust how the model is shown.</p></div></div><div class="option-group"><button class="group-toggle" type="button" aria-expanded="true" aria-controls="displayOptions"><span>Display options</span><span class="group-chevron">⌄</span></button><div class="group-content display-options" id="displayOptions"><label class="check-option"><input type="checkbox" id="wireframe"> Wireframe</label><label class="check-option"><input type="checkbox" id="xray"> X-ray</label><label class="check-option"><input type="checkbox" id="clay"> Clay</label><label class="check-option"><input type="checkbox" id="gridToggle" checked> Show build grid</label><label class="check-option"><input type="checkbox" id="autoRotate"> Auto rotate</label></div></div><div class="option-group"><button class="group-toggle" type="button" aria-expanded="true" aria-controls="appearanceOptions"><span>Appearance</span><span class="group-chevron">⌄</span></button><div class="group-content" id="appearanceOptions"><div class="color-row"><label for="modelColor">Model color</label><input type="color" id="modelColor" value="#b9c5d4"></div><div class="color-row"><label for="backgroundSelect">Background</label><select id="backgroundSelect"><option value="dark">Dark studio</option><option value="white">White</option><option value="sunset">Warm studio</option></select></div></div></div><div class="button-row"><button class="option-button" data-camera="front">Front view</button><button class="option-button" data-camera="top">Top view</button><button class="option-button" data-camera="side">Side view</button></div></section>
+      <section class="control-panel" id="rotationPanel" hidden><div class="panel-heading"><div><h2>Model rotation</h2><p>Drag from the centre to rotate in either direction.</p></div><button class="text-button" id="resetRotation">Reset</button></div><div class="rotation-axis"><label for="rotateX">X <input id="rotateXValue" class="value-input" type="number" min="-180" max="180" step="1" value="0" aria-label="Rotation X in degrees"></label><div class="rotation-scale"><span>−</span><input id="rotateX" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div><div class="rotation-axis"><label for="rotateY">Y <input id="rotateYValue" class="value-input" type="number" min="-180" max="180" step="1" value="0" aria-label="Rotation Y in degrees"></label><div class="rotation-scale"><span>−</span><input id="rotateY" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div><div class="rotation-axis"><label for="rotateZ">Z <input id="rotateZValue" class="value-input" type="number" min="-180" max="180" step="1" value="0" aria-label="Rotation Z in degrees"></label><div class="rotation-scale"><span>−</span><input id="rotateZ" class="rotation-slider" type="range" min="-180" max="180" step="1" value="0"><span>+</span></div></div></section>
+      <section class="control-panel" id="movePanel" hidden><div class="panel-heading"><div><h2>Move model</h2><p>Adjust position along each axis.</p></div><button class="text-button" id="resetMove">Reset</button></div><div class="move-axis"><label for="moveX">X <input id="moveXValue" class="value-input" type="number" step="0.1" value="0" aria-label="Position X in millimetres"></label><div class="move-scale"><span>-</span><input id="moveX" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div><div class="move-axis"><label for="moveY">Y <input id="moveYValue" class="value-input" type="number" step="0.1" value="0" aria-label="Position Y in millimetres"></label><div class="move-scale"><span>-</span><input id="moveY" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div><div class="move-axis"><label for="moveZ">Z <input id="moveZValue" class="value-input" type="number" step="0.1" value="0" aria-label="Position Z in millimetres"></label><div class="move-scale"><span>-</span><input id="moveZ" class="move-slider" type="range" min="-100" max="100" step="0.1" value="0"><span>+</span></div></div></section>
     </section>
-    <section class="slice-modal" id="sliceModal" hidden role="dialog" aria-modal="true" aria-labelledby="sliceTitle">
-      <div class="slice-dialog">
-        <div class="panel-heading"><div><h2 id="sliceTitle">Print estimate</h2><p>Approximate filament use and print time.</p></div><button class="text-button" id="closeSlice" aria-label="Close">✕</button></div>
-        <div class="slice-fields">
-          <label>Manufacturer<select id="sliceManufacturer"><option value="">Loading manufacturers…</option></select></label>
-          <label>Printer model<select id="slicePrinter"><option value="">Choose printer model</option></select></label>
-          <label>Process profile<select id="sliceProfile"><option value="generic">Generic estimate · 0.20 mm</option></select></label>
-          <label>Material<select id="sliceMaterial"><option value="pla">PLA</option><option value="petg">PETG</option><option value="abs">ABS</option><option value="asa">ASA</option><option value="tpu">TPU</option></select></label>
-          <label>Infill <span id="infillLabel">15%</span><input id="sliceInfill" type="range" min="0" max="100" step="5" value="15"></label>
-        </div>
-        <div class="slice-results">
-          <div class="slice-result"><span>Filament</span><strong id="sliceGrams">—</strong><small id="sliceLength">—</small></div>
-          <div class="slice-result"><span>Estimated time</span><strong id="sliceTime">—</strong><small id="sliceLayers">—</small></div>
-        </div>
-        <p class="note" id="slicePrinterNote">Choose a printer to use its starter speed and layer presets. Leave this blank to use generic defaults.</p>
-        <p class="note" id="sliceNote">Estimates assume a typical 0.4 mm nozzle, 2 walls and a 5 mm brim-free print. Actual results depend on printer, supports, geometry and slicer settings.</p>
-        <button class="primary-button slice-calculate" id="recalculateSlice">Update estimate</button>
-      </div>
-    </section>
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <footer class="app-footer">Check3D <span>v1.2.0</span> <span class="footer-separator">·</span> Updated 1 Nov 2026</footer>
+    <section class="slice-modal" id="sliceModal" hidden role="dialog" aria-modal="true" aria-labelledby="sliceTitle"><div class="slice-dialog"><div class="panel-heading"><div><h2 id="sliceTitle">Print estimate</h2><p>Approximate filament use and print time.</p></div><button class="text-button" id="closeSlice" aria-label="Close">✕</button></div><div class="slice-fields"><label>Model type<select id="sliceModelType"><option value="solid" selected>Solid model</option><option value="shell">Shell / hollow model</option></select></label><label>Manufacturer<select id="sliceManufacturer"><option value="">Loading manufacturers…</option></select></label><label>Printer model<select id="slicePrinter"><option value="">Choose printer model</option></select></label><label>Process profile<select id="sliceProfile"><option value="generic">Generic estimate · 0.20 mm</option></select></label><label>Material<select id="sliceMaterial"><option value="pla">PLA</option><option value="petg">PETG</option><option value="abs">ABS</option><option value="asa">ASA</option><option value="tpu">TPU</option></select></label><label>Infill <span id="infillLabel">15%</span><input id="sliceInfill" type="range" min="0" max="100" step="5" value="15"></label></div><div class="slice-results"><div class="slice-result"><span>Filament</span><strong id="sliceGrams">—</strong><small id="sliceLength">—</small></div><div class="slice-result"><span>Estimated time</span><strong id="sliceTime">—</strong><small id="sliceLayers">—</small></div></div><p class="note" id="slicePrinterNote">Choose a printer and exact model to use its bundled process profile names.</p><p class="note" id="sliceNote">Solid model is the default. For hollow/shell models, switch Model type to estimate wall material plus infill.</p><button class="primary-button slice-calculate" id="recalculateSlice">Update estimate</button></div></section>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div><footer class="app-footer">Check3D <span>v1.2.1</span> <span class="footer-separator">·</span> Updated 2 Nov 2026</footer>
   </main>
-  <script type="module" src="./js/app.js?v=20261101-19"></script>
+  <script type="module" src="./js/app.js?v=20261102-01"></script>
 </body>
 </html>
