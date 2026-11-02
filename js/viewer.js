@@ -287,13 +287,43 @@ export function createViewer(canvas, container) {
     }
     stats.nodes = nodes.size;
     stats.openNodePositions = [];
+    const openPoints = [];
     for (const [key, neighbors] of adjacency) {
       if (neighbors.length === 1) {
         stats.degree1++;
         const point = nodes.get(key);
-        stats.openNodePositions.push([point.x, point.y, point.z].map(value => Number(value.toFixed(2))));
+        openPoints.push(point.clone());
+        stats.openNodePositions.push([point.x, point.y, point.z].map(value => Number(value.toFixed(3))));
       } else if (neighbors.length === 2) stats.degree2++;
       else if (neighbors.length > 2) stats.degree3plus++;
+    }
+    // Measure nearest endpoint distances without changing contour welding.
+    stats.nearestOpenDistances = [];
+    for (let i = 0; i < openPoints.length; i++) {
+      let nearest = Infinity;
+      for (let j = 0; j < openPoints.length; j++) {
+        if (i !== j) nearest = Math.min(nearest, openPoints[i].distanceTo(openPoints[j]));
+      }
+      if (Number.isFinite(nearest)) stats.nearestOpenDistances.push(Number(nearest.toFixed(5)));
+    }
+    stats.endpointPairs = [];
+    const paired = new Set();
+    for (let i = 0; i < openPoints.length; i++) {
+      if (paired.has(i)) continue;
+      let best = -1, distance = Infinity;
+      for (let j = i + 1; j < openPoints.length; j++) {
+        if (paired.has(j)) continue;
+        const d = openPoints[i].distanceTo(openPoints[j]);
+        if (d < distance) { distance = d; best = j; }
+      }
+      if (best >= 0) {
+        paired.add(i); paired.add(best);
+        stats.endpointPairs.push({
+          a: stats.openNodePositions[i],
+          b: stats.openNodePositions[best],
+          distance: Number(distance.toFixed(5))
+        });
+      }
     }
     const loops=[], visitedEdges=new Set();
     const edgeKeyFor=(a,b)=>a<b?a+'|'+b:b+'|'+a;
@@ -408,7 +438,7 @@ export function createViewer(canvas, container) {
 
   return {
     load, fit, getInfo,
-    getCutDiagnostics() { return { ...cutDiagnostics, openNodePositions: (cutDiagnostics.openNodePositions || []).map(point => [...point]) }; },
+    getCutDiagnostics() { return { ...cutDiagnostics, openNodePositions: (cutDiagnostics.openNodePositions || []).map(point => [...point]), nearestOpenDistances: [...(cutDiagnostics.nearestOpenDistances || [])], endpointPairs: (cutDiagnostics.endpointPairs || []).map(pair => ({ a: [...pair.a], b: [...pair.b], distance: pair.distance })) }; },
     setCut(axis, ratio, invert = false) { cutAxis = axis; cutRatio = Math.max(0, Math.min(1, ratio)); inverted = invert; applyCut(); },
     clearCut() { eachMaterial(material => { material.clippingPlanes = []; material.needsUpdate = true; }); disposeCap(); cutRatio = 0; inverted = false; },
     getCutPosition() { if (!bounds) return 0; const i = { x: 0, y: 1, z: 2 }[cutAxis]; return bounds.min.getComponent(i) + (bounds.max.getComponent(i) - bounds.min.getComponent(i)) * cutRatio; },
