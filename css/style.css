@@ -122,3 +122,5 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #slicePrinter{width:100%;padding:10px 11px;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px}
 
 .cut-position-input{width:112px;max-width:42%;text-align:right;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text)}
+
+.bug-report-button{width:100%;margin-top:14px;border-color:#805b43;color:#ffc49a;background:#30251f;font-weight:650}.bug-report-button:disabled{opacity:.35;cursor:not-allowed}.bug-report-help{margin-top:7px}
