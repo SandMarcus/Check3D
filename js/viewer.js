@@ -9,7 +9,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 export function createViewer(canvas, container) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.setClearColor(0x101318);
+  renderer.setClearColor(0xe9edf2);
   renderer.localClippingEnabled = true;
 
   const scene = new THREE.Scene();
@@ -31,7 +31,7 @@ export function createViewer(canvas, container) {
   fill.position.set(-2, -1, -1);
   scene.add(fill);
 
-  const grid = new THREE.GridHelper(200, 40, 0x667080, 0x303641);
+  const grid = new THREE.GridHelper(200, 40, 0x9aabc2, 0xd5deea);
   grid.rotation.x = Math.PI / 2;
   grid.position.z = -0.01;
   scene.add(grid);
@@ -48,7 +48,7 @@ export function createViewer(canvas, container) {
   let pivotOrigin = new THREE.Vector3();
   const modelPosition = { x: 0, y: 0, z: 0 };
   let displayMode = 'solid';
-  let backgroundMode = 'dark';
+  let backgroundMode = 'white';
   const modelRotation = { x: 0, y: 0, z: 0 };
 
   function resize() {
@@ -701,7 +701,7 @@ export function createViewer(canvas, container) {
     showGrid(value) { grid.visible = value; },
     setWireframe(value) { displayMode = value ? 'wireframe' : 'solid'; applyDisplayMode(); },
     setDisplayMode(mode) { displayMode = mode; applyDisplayMode(); },
-    setBackground(mode) { backgroundMode = mode; const colors = { dark: 0x101318, white: 0xe9edf2, sunset: 0x3a2930 }; renderer.setClearColor(colors[mode] ?? colors.dark); scene.background = new THREE.Color(colors[mode] ?? colors.dark); },
+    setBackground(mode) { backgroundMode = mode; const colors = { dark: 0x101318, white: 0xe9edf2, sunset: 0x3a2930 }; renderer.setClearColor(colors[mode] ?? colors.white); scene.background = new THREE.Color(colors[mode] ?? colors.white); const gridColors = mode === 'dark' || mode === 'sunset' ? [0x667080, 0x303641] : [0x9aabc2, 0xd5deea]; grid.material.forEach((material, index) => material.color.setHex(gridColors[index])); },
     setModelPosition(axis, value) { if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return; modelPosition[axis] = Number(value) || 0; modelPivot.position.set(pivotOrigin.x + modelPosition.x, pivotOrigin.y + modelPosition.y, pivotOrigin.z + modelPosition.z); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
     resetModelPosition() { if (!modelPivot) return; modelPosition.x = modelPosition.y = modelPosition.z = 0; modelPivot.position.copy(pivotOrigin); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
     setModelRotation(axis, degrees) { if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return; modelRotation[axis] = THREE.MathUtils.clamp(degrees, -180, 180); modelPivot.rotation.set(THREE.MathUtils.degToRad(modelRotation.x), THREE.MathUtils.degToRad(modelRotation.y), THREE.MathUtils.degToRad(modelRotation.z)); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
