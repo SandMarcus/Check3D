@@ -1,4 +1,4 @@
-import { createViewer } from './viewer.js?v=20261104-32';
+import { createViewer } from './viewer.js?v=20261104-33';
 
 const APP_VERSION = '1.5.0';
 const $ = (id) => document.getElementById(id);
