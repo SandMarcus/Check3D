@@ -525,7 +525,8 @@ export function createViewer(canvas, container) {
     // exactly two open endpoints. Branching graphs are deliberately left untouched.
     stats.repairedGaps = [];
     const openKeys = [...adjacency.entries()].filter(([, neighbors]) => neighbors.length === 1).map(([key]) => key);
-    if (stats.degree3plus === 0 && openKeys.length >= 2) {
+    // Branches are retained for topology diagnostics; endpoint repairs are independent of them.
+    if (openKeys.length >= 2) {
       const repairLimit = Math.max(eps * 64, 0.01);
       const nearest = new Map();
       for (const key of openKeys) {
