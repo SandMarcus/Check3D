@@ -520,25 +520,38 @@ export function createViewer(canvas, container) {
         });
       }
     }
-    // A mathematically closed section can still produce two degree-1 endpoints
-    // when a triangle edge is hit within floating-point tolerance. Repair only the
-    // unambiguous case: exactly two open endpoints, no branches, and a sub-0.01 mm gap.
-    // Never pair endpoints heuristically when multiple gaps or branches exist.
+    // Close small, unambiguous contour gaps. Several independent gaps can occur
+    // on one section, so repair mutual-nearest endpoint pairs rather than requiring
+    // exactly two open endpoints. Branching graphs are deliberately left untouched.
     stats.repairedGaps = [];
-    if (openPoints.length === 2 && stats.degree3plus === 0) {
-      const gap = openPoints[0].distanceTo(openPoints[1]);
+    const openKeys = [...adjacency.entries()].filter(([, neighbors]) => neighbors.length === 1).map(([key]) => key);
+    if (stats.degree3plus === 0 && openKeys.length >= 2) {
       const repairLimit = Math.max(eps * 64, 0.01);
-      if (gap > eps && gap <= repairLimit) {
-        const openKeys = [...adjacency.entries()].filter(([, neighbors]) => neighbors.length === 1).map(([key]) => key);
-        if (openKeys.length === 2) {
-          adjacency.get(openKeys[0]).push(openKeys[1]);
-          adjacency.get(openKeys[1]).push(openKeys[0]);
-          edgeKeys.add((openKeys[0] < openKeys[1] ? openKeys[0] + '|' + openKeys[1] : openKeys[1] + '|' + openKeys[0]));
-          stats.repairedGaps.push(Number(gap.toFixed(5)));
-          stats.degree1 = 0;
-          stats.degree2 += 2;
+      const nearest = new Map();
+      for (const key of openKeys) {
+        let bestKey = null, bestDistance = Infinity;
+        for (const candidate of openKeys) {
+          if (candidate === key) continue;
+          const distance = nodes.get(key).distanceTo(nodes.get(candidate));
+          if (distance < bestDistance) { bestDistance = distance; bestKey = candidate; }
         }
+        nearest.set(key, { key: bestKey, distance: bestDistance });
       }
+      const repaired = new Set();
+      for (const key of openKeys) {
+        const match = nearest.get(key);
+        if (!match || repaired.has(key) || !match.key || repaired.has(match.key)) continue;
+        const reverse = nearest.get(match.key);
+        if (reverse?.key !== key || match.distance <= eps || match.distance > repairLimit) continue;
+        adjacency.get(key).push(match.key);
+        adjacency.get(match.key).push(key);
+        const edgeKey = key < match.key ? key + '|' + match.key : match.key + '|' + key;
+        edgeKeys.add(edgeKey);
+        repaired.add(key); repaired.add(match.key);
+        stats.repairedGaps.push(Number(match.distance.toFixed(5)));
+      }
+      stats.degree1 = openKeys.length - repaired.size;
+      stats.degree2 += repaired.size;
     }
     const loops=[], visitedEdges=new Set();
     const edgeKeyFor=(a,b)=>a<b?a+'|'+b:b+'|'+a;
