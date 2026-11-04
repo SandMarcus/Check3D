@@ -520,6 +520,26 @@ export function createViewer(canvas, container) {
         });
       }
     }
+    // A mathematically closed section can still produce two degree-1 endpoints
+    // when a triangle edge is hit within floating-point tolerance. Repair only the
+    // unambiguous case: exactly two open endpoints, no branches, and a sub-0.01 mm gap.
+    // Never pair endpoints heuristically when multiple gaps or branches exist.
+    stats.repairedGaps = [];
+    if (openPoints.length === 2 && stats.degree3plus === 0) {
+      const gap = openPoints[0].distanceTo(openPoints[1]);
+      const repairLimit = Math.max(eps * 64, 0.01);
+      if (gap > eps && gap <= repairLimit) {
+        const openKeys = [...adjacency.entries()].filter(([, neighbors]) => neighbors.length === 1).map(([key]) => key);
+        if (openKeys.length === 2) {
+          adjacency.get(openKeys[0]).push(openKeys[1]);
+          adjacency.get(openKeys[1]).push(openKeys[0]);
+          edgeKeys.add((openKeys[0] < openKeys[1] ? openKeys[0] + '|' + openKeys[1] : openKeys[1] + '|' + openKeys[0]));
+          stats.repairedGaps.push(Number(gap.toFixed(5)));
+          stats.degree1 = 0;
+          stats.degree2 += 2;
+        }
+      }
+    }
     const loops=[], visitedEdges=new Set();
     const edgeKeyFor=(a,b)=>a<b?a+'|'+b:b+'|'+a;
     for(const [startKey,neighbors] of adjacency) {
