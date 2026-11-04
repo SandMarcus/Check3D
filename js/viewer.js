@@ -57,7 +57,6 @@ export function createViewer(canvas, container) {
     renderer.setSize(rect.width, rect.height, false);
     camera.aspect = rect.width / rect.height;
     camera.updateProjectionMatrix();
-    updateRotationGizmo();
   }
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(container);
@@ -384,7 +383,7 @@ export function createViewer(canvas, container) {
       group.add(visible);
       const hit = new THREE.Mesh(
         new THREE.TorusGeometry(rotationGizmoRadius, rotationGizmoRadius * 0.075, 6, 96),
-        new THREE.MeshBasicMaterial({ visible: false, depthTest: false })
+        new THREE.MeshBasicMaterial({ color: item.color, transparent: true, opacity: 0.001, depthTest: false, depthWrite: false })
       );
       hit.userData.rotationAxis = item.axis;
       group.add(hit);
@@ -439,6 +438,12 @@ export function createViewer(canvas, container) {
     rotationPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   }
 
+  function getRotationAngle(vector, axis) {
+    if (axis === 'x') return Math.atan2(vector.z, vector.y);
+    if (axis === 'y') return Math.atan2(vector.x, vector.z);
+    return Math.atan2(vector.y, vector.x);
+  }
+
   function getRotationPlanePoint(event, axis) {
     rotationPointerPosition(event);
     rotationRaycaster.setFromCamera(rotationPointer, camera);
@@ -458,7 +463,7 @@ export function createViewer(canvas, container) {
     const axis = hits[0].object.userData.rotationAxis;
     const vector = getRotationPlanePoint(event, axis);
     if (!vector || vector.lengthSq() < 1e-8) return;
-    const angle = Math.atan2(axis === 'x' ? vector.z : vector.y, vector.x);
+    const angle = getRotationAngle(vector, axis);
     rotationDrag = { axis, angle, pointerId: event.pointerId };
     canvas.setPointerCapture(event.pointerId);
     event.preventDefault();
@@ -467,7 +472,7 @@ export function createViewer(canvas, container) {
     if (!rotationDrag || rotationDrag.pointerId !== event.pointerId) return;
     const vector = getRotationPlanePoint(event, rotationDrag.axis);
     if (!vector || vector.lengthSq() < 1e-8) return;
-    const angle = Math.atan2(rotationDrag.axis === 'x' ? vector.z : vector.y, vector.x);
+    const angle = getRotationAngle(vector, rotationDrag.axis);
     let delta = angle - rotationDrag.angle;
     while (delta > Math.PI) delta -= Math.PI * 2;
     while (delta < -Math.PI) delta += Math.PI * 2;
