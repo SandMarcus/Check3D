@@ -652,8 +652,21 @@ export function createViewer(canvas, container) {
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
       geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       geometry.computeVertexNormals();
-      const material = new THREE.MeshBasicMaterial({ map: getSectionHatchTexture(), side: THREE.DoubleSide, clippingPlanes: [] });
-      capMeshes.push(new THREE.Mesh(geometry, material));
+      const material = new THREE.MeshBasicMaterial({
+        map: getSectionHatchTexture(),
+        side: THREE.DoubleSide,
+        clippingPlanes: [],
+        depthTest: true,
+        depthWrite: true,
+        // The cap lies exactly on the clipping plane. A small depth bias prevents
+        // z-fighting with coincident source faces as the camera/model rotates.
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1
+      });
+      const capMesh = new THREE.Mesh(geometry, material);
+      capMesh.renderOrder = 1;
+      capMeshes.push(capMesh);
     }
 
     cutDiagnostics = stats;
