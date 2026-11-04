@@ -658,14 +658,16 @@ export function createViewer(canvas, container) {
         clippingPlanes: [],
         depthTest: true,
         depthWrite: true,
-        // The cap lies exactly on the clipping plane. A small depth bias prevents
-        // z-fighting with coincident source faces as the camera/model rotates.
+        // The cap lies exactly on the clipping plane. Use a stronger depth bias
+        // so it wins against coincident source faces across different view angles.
         polygonOffset: true,
-        polygonOffsetFactor: -1,
-        polygonOffsetUnits: -1
+        polygonOffsetFactor: -4,
+        polygonOffsetUnits: -4
       });
       const capMesh = new THREE.Mesh(geometry, material);
-      capMesh.renderOrder = 1;
+      // Draw caps after the model while retaining depth testing against visible
+      // geometry in front of the section plane.
+      capMesh.renderOrder = 10;
       capMeshes.push(capMesh);
     }
 
