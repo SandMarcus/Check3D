@@ -447,7 +447,11 @@ export function createViewer(canvas, container) {
     // STL facets can carry tiny coordinate discrepancies at shared cut edges.
     // Keep intersection precision unchanged, but allow a wider tolerance when
     // joining the resulting contour endpoints into a continuous graph.
-    const weldEps = eps * 8;
+    // 3MF exports can leave coincident contour endpoints a few microns apart.
+    // The previous 8x tolerance left this model with a 0.00197 mm gap, so its
+    // cut loop stayed open and the section cap was incomplete. Use a slightly
+    // wider weld tolerance while keeping it tiny relative to model dimensions.
+    const weldEps = eps * 16;
     const bucketCoords = point => [Math.floor(point.x / weldEps), Math.floor(point.y / weldEps), Math.floor(point.z / weldEps)];
     const bucketKey = (x, y, z) => x + ',' + y + ',' + z;
     const nodes = new Map(), adjacency = new Map(), edgeKeys = new Set(), nodeBuckets = new Map();
