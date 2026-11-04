@@ -382,6 +382,29 @@ export function createViewer(canvas, container) {
     points.push(point.clone()); return points[points.length - 1];
   }
 
+  let sectionHatchTexture = null;
+  function getSectionHatchTexture() {
+    if (sectionHatchTexture) return sectionHatchTexture;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 128;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#c9e7ad';
+    context.fillRect(0, 0, 128, 128);
+    context.strokeStyle = '#426b36';
+    context.lineWidth = 2;
+    for (let offset = -128; offset <= 256; offset += 16) {
+      context.beginPath();
+      context.moveTo(offset, 128);
+      context.lineTo(offset + 128, 0);
+      context.stroke();
+    }
+    sectionHatchTexture = new THREE.CanvasTexture(canvas);
+    sectionHatchTexture.wrapS = sectionHatchTexture.wrapT = THREE.RepeatWrapping;
+    sectionHatchTexture.colorSpace = THREE.SRGBColorSpace;
+    sectionHatchTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return sectionHatchTexture;
+  }
+
   function buildCutCap() {
     disposeCap();
     if (!modelRoot || !cutPlane || !bounds) return;
@@ -579,15 +602,19 @@ export function createViewer(canvas, container) {
       [contour2D, ...holes2D].forEach(loop => loop.forEach(pt => {
         pointMap.push(unprojectPoint(pt.x, pt.y, axis, planeValue));
       }));
-      const vertices = [];
+      const vertices = [], uvs = [];
       triangles.forEach(tri => tri.forEach(index => {
         const point = pointMap[index];
+        const projectedPoint = projectPoint(point, axis);
         vertices.push(point.x, point.y, point.z);
+        // Keep the hatch anchored in model space so it does not swim while the cut moves.
+        uvs.push(projectedPoint.u / 8, projectedPoint.v / 8);
       }));
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       geometry.computeVertexNormals();
-      const material = new THREE.MeshStandardMaterial({ color: 0xb9c5d4, roughness: 0.72, metalness: 0.05, side: THREE.DoubleSide, clippingPlanes: [] });
+      const material = new THREE.MeshBasicMaterial({ map: getSectionHatchTexture(), side: THREE.DoubleSide, clippingPlanes: [] });
       capMeshes.push(new THREE.Mesh(geometry, material));
     }
 
