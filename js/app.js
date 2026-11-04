@@ -1,6 +1,6 @@
-import { createViewer } from './viewer.js?v=20261104-33';
+import { createViewer } from './viewer.js?v=20261104-31';
 
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.4.0';
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
 let currentFile = null;
@@ -31,7 +31,6 @@ async function loadFile(file) {
   catch (error) { console.error('3D model loading failed:', error); toast(`Load error: ${(error?.message || String(error)).slice(0, 110)}`); return; }
   currentFile = file;
   modelInfo = info;
-  $('rotateToolButton').setAttribute('aria-pressed', 'false'); $('rotateToolButton').classList.remove('active'); $('viewport').classList.remove('rotation-tool-active'); viewer.setRotationTool(false);
   viewer.resetModelPosition();
   resetMoveControls();
   const moveLimit = Math.max(info.size.x, info.size.y, info.size.z, 1) * 2;
@@ -146,7 +145,6 @@ $('clay').addEventListener('change', e => { if (e.target.checked) { $('wireframe
 $('backgroundSelect').addEventListener('change', e => viewer.setBackground(e.target.value));
 ['x','y','z'].forEach(axis => { const slider = $('rotate' + axis.toUpperCase()), output = $('rotate' + axis.toUpperCase() + 'Value'); slider.addEventListener('input', () => { output.value = slider.value; viewer.setModelRotation(axis, Number(slider.value)); }); output.addEventListener('change', () => { const value = Math.max(-180, Math.min(180, Number(output.value) || 0)); output.value = value; slider.value = value; viewer.setModelRotation(axis, value); }); });
 $('resetRotation').addEventListener('click', () => { viewer.resetModelRotation(); ['x','y','z'].forEach(axis => { $('rotate' + axis.toUpperCase()).value = 0; $('rotate' + axis.toUpperCase() + 'Value').value = 0; }); });
-$('rotateToolButton').addEventListener('click', () => { const enabled = $('rotateToolButton').getAttribute('aria-pressed') !== 'true'; $('rotateToolButton').setAttribute('aria-pressed', String(enabled)); $('rotateToolButton').classList.toggle('active', enabled); viewer.setRotationTool(enabled); $('viewport').classList.toggle('rotation-tool-active', enabled); });
 $('autoRotate').addEventListener('change', e => viewer.setAutoRotate(e.target.checked)); $('modelColor').addEventListener('input', e => viewer.setColor(e.target.value));
 document.querySelectorAll('[data-view], [data-camera]').forEach(button => button.addEventListener('click', () => viewer.setView(button.dataset.view || button.dataset.camera)));
 document.querySelectorAll('.tool-tab').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.tool-tab').forEach(t => t.classList.toggle('active', t === tab)); ['cutPanel','infoPanel','viewPanel','rotationPanel','movePanel','integrityPanel'].forEach(id => $(id).hidden = id !== tab.dataset.panel); }));
