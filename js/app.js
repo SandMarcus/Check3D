@@ -1,8 +1,26 @@
-import { createViewer } from './viewer.js?v=20261104-31';
+import { createViewer } from './viewer.js?v=20261104-32';
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const $ = (id) => document.getElementById(id);
 const viewer = createViewer($('viewerCanvas'), $('viewport'));
+const themeButton = $('themeToggle');
+function applyTheme(theme, persist = false) {
+  const selected = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = selected;
+  const dark = selected === 'dark';
+  themeButton.innerHTML = dark ? '☀ <span class="desktop-label">Light mode</span>' : '☾ <span class="desktop-label">Dark mode</span>';
+  themeButton.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  themeButton.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+  $('backgroundSelect').value = dark ? 'dark' : 'white';
+  viewer.setBackground(dark ? 'dark' : 'white');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#111318' : '#f4f6fa');
+  if (persist) { try { localStorage.setItem('check3d-theme', selected); } catch (error) { /* Storage may be unavailable. */ } }
+}
+let initialTheme = 'light';
+try { initialTheme = localStorage.getItem('check3d-theme') || 'light'; } catch (error) { /* Use light mode when storage is unavailable. */ }
+applyTheme(initialTheme);
+themeButton.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true));
+
 let currentFile = null;
 let modelInfo = null;
 let toastTimer;
