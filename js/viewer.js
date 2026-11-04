@@ -333,11 +333,9 @@ export function createViewer(canvas, container) {
     modelPivot.add(root);
     modelRoot = modelPivot;
     scene.add(modelRoot);
-    modelRotation.x = modelRotation.y = modelRotation.z = 0;
     modelRoot.updateMatrixWorld(true);
     bounds = new THREE.Box3().setFromObject(modelRoot);
     fit();
-    updateRotationGizmo();
     const size = bounds.getSize(new THREE.Vector3()), modelCenter = bounds.getCenter(new THREE.Vector3());
     grid.scale.setScalar(Math.max(size.length() / 200, 0.01));
     grid.position.set(modelCenter.x, modelCenter.y, bounds.min.z);
@@ -353,148 +351,6 @@ export function createViewer(canvas, container) {
     camera.near = Math.max(maxDim / 10000, 0.001); camera.far = maxDim * 100; camera.updateProjectionMatrix();
     controls.target.copy(center); controls.minDistance = maxDim * 0.03; controls.maxDistance = maxDim * 30; controls.update();
   }
-
-
-  // Desktop rotation gizmo: three axis rings with draggable, axis-constrained rotation.
-  let rotationGizmo = null;
-  let rotationGizmoEnabled = false;
-  let rotationGizmoRadius = 1;
-  let rotationDrag = null;
-  const rotationRaycaster = new THREE.Raycaster();
-  const rotationPointer = new THREE.Vector2();
-  const rotationAxes = [
-    { axis: 'x', color: 0xff5b62, normal: new THREE.Vector3(1, 0, 0), rotation: new THREE.Euler(0, Math.PI / 2, 0) },
-    { axis: 'y', color: 0x55d68b, normal: new THREE.Vector3(0, 1, 0), rotation: new THREE.Euler(Math.PI / 2, 0, 0) },
-    { axis: 'z', color: 0x58a6ff, normal: new THREE.Vector3(0, 0, 1), rotation: new THREE.Euler(0, 0, 0) }
-  ];
-
-  function createRotationGizmo() {
-    if (rotationGizmo) return;
-    rotationGizmo = new THREE.Group();
-    rotationGizmo.userData.rotationHandles = [];
-    for (const item of rotationAxes) {
-      const group = new THREE.Group();
-      group.rotation.copy(item.rotation);
-      const visible = new THREE.Mesh(
-        new THREE.TorusGeometry(rotationGizmoRadius, rotationGizmoRadius * 0.009, 10, 160),
-        new THREE.MeshBasicMaterial({ color: item.color, depthTest: false, transparent: true, opacity: 0.95 })
-      );
-      visible.renderOrder = 1001;
-      group.add(visible);
-      const hit = new THREE.Mesh(
-        new THREE.TorusGeometry(rotationGizmoRadius, rotationGizmoRadius * 0.075, 6, 96),
-        new THREE.MeshBasicMaterial({ color: item.color, transparent: true, opacity: 0.001, depthTest: false, depthWrite: false })
-      );
-      hit.userData.rotationAxis = item.axis;
-      group.add(hit);
-      rotationGizmo.userData.rotationHandles.push(hit);
-      const arrow = new THREE.Mesh(
-        new THREE.ConeGeometry(rotationGizmoRadius * 0.055, rotationGizmoRadius * 0.16, 12),
-        new THREE.MeshBasicMaterial({ color: item.color, depthTest: false })
-      );
-      arrow.position.set(0, rotationGizmoRadius, 0);
-      arrow.rotation.z = -Math.PI / 2;
-      arrow.renderOrder = 1002;
-      group.add(arrow);
-      rotationGizmo.add(group);
-    }
-    rotationGizmo.visible = false;
-    scene.add(rotationGizmo);
-  }
-
-  function updateRotationGizmo() {
-    if (!rotationGizmo || !modelPivot || !bounds) return;
-    rotationGizmo.position.copy(modelPivot.position);
-    rotationGizmo.scale.setScalar(1);
-    rotationGizmo.visible = rotationGizmoEnabled;
-    camera.updateMatrixWorld();
-    const distance = camera.position.distanceTo(rotationGizmo.position);
-    const worldPerPixel = 2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) / Math.max(1, renderer.domElement.clientHeight);
-    const desiredRadius = Math.max(bounds.getSize(new THREE.Vector3()).length() * 0.62, worldPerPixel * 82);
-    rotationGizmoRadius = desiredRadius;
-    rotationGizmo.children.forEach((group, index) => {
-      const visible = group.children[0], hit = group.children[1], arrow = group.children[2];
-      visible.geometry.dispose(); visible.geometry = new THREE.TorusGeometry(desiredRadius, desiredRadius * 0.009, 10, 160);
-      hit.geometry.dispose(); hit.geometry = new THREE.TorusGeometry(desiredRadius, desiredRadius * 0.075, 6, 96);
-      arrow.geometry.dispose(); arrow.geometry = new THREE.ConeGeometry(desiredRadius * 0.055, desiredRadius * 0.16, 12);
-      arrow.position.set(0, desiredRadius, 0);
-      const item = rotationAxes[index];
-      group.rotation.copy(item.rotation);
-    });
-  }
-
-  function setRotationTool(enabled) {
-    rotationGizmoEnabled = Boolean(enabled) && Boolean(modelRoot);
-    if (rotationGizmoEnabled) createRotationGizmo();
-    if (rotationGizmo) rotationGizmo.visible = rotationGizmoEnabled;
-    controls.enabled = !rotationGizmoEnabled;
-    if (!rotationGizmoEnabled) rotationDrag = null;
-    updateRotationGizmo();
-  }
-
-  function rotationPointerPosition(event) {
-    const rect = canvas.getBoundingClientRect();
-    rotationPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    rotationPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-  }
-
-  function getRotationAngle(vector, axis) {
-    if (axis === 'x') return Math.atan2(vector.z, vector.y);
-    if (axis === 'y') return Math.atan2(vector.x, vector.z);
-    return Math.atan2(vector.y, vector.x);
-  }
-
-  function getRotationPlanePoint(event, axis) {
-    rotationPointerPosition(event);
-    rotationRaycaster.setFromCamera(rotationPointer, camera);
-    const center = modelPivot ? modelPivot.position.clone() : new THREE.Vector3();
-    const normal = new THREE.Vector3(axis === 'x' ? 1 : 0, axis === 'y' ? 1 : 0, axis === 'z' ? 1 : 0);
-    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, center);
-    const point = new THREE.Vector3();
-    return rotationRaycaster.ray.intersectPlane(plane, point) ? point.sub(center) : null;
-  }
-
-  canvas.addEventListener('pointerdown', event => {
-    if (!rotationGizmoEnabled || !rotationGizmo?.visible || event.button !== 0) return;
-    rotationPointerPosition(event);
-    rotationRaycaster.setFromCamera(rotationPointer, camera);
-    const hits = rotationRaycaster.intersectObjects(rotationGizmo.userData.rotationHandles, false);
-    if (!hits.length) return;
-    const axis = hits[0].object.userData.rotationAxis;
-    const vector = getRotationPlanePoint(event, axis);
-    if (!vector || vector.lengthSq() < 1e-8) return;
-    const angle = getRotationAngle(vector, axis);
-    rotationDrag = { axis, angle, pointerId: event.pointerId };
-    canvas.setPointerCapture(event.pointerId);
-    event.preventDefault();
-  });
-  canvas.addEventListener('pointermove', event => {
-    if (!rotationDrag || rotationDrag.pointerId !== event.pointerId) return;
-    const vector = getRotationPlanePoint(event, rotationDrag.axis);
-    if (!vector || vector.lengthSq() < 1e-8) return;
-    const angle = getRotationAngle(vector, rotationDrag.axis);
-    let delta = angle - rotationDrag.angle;
-    while (delta > Math.PI) delta -= Math.PI * 2;
-    while (delta < -Math.PI) delta += Math.PI * 2;
-    rotationDrag.angle = angle;
-    const key = rotationDrag.axis;
-    modelRotation[key] = THREE.MathUtils.clamp(modelRotation[key] + THREE.MathUtils.radToDeg(delta), -180, 180);
-    modelPivot.rotation.set(THREE.MathUtils.degToRad(modelRotation.x), THREE.MathUtils.degToRad(modelRotation.y), THREE.MathUtils.degToRad(modelRotation.z));
-    modelPivot.updateMatrixWorld(true);
-    bounds = new THREE.Box3().setFromObject(modelPivot);
-    applyCut();
-    updateRotationGizmo();
-    canvas.style.cursor = 'grabbing';
-    event.preventDefault();
-  });
-  function finishRotationDrag(event) {
-    if (!rotationDrag || (event && rotationDrag.pointerId !== event.pointerId)) return;
-    rotationDrag = null;
-    canvas.style.cursor = rotationGizmoEnabled ? 'grab' : '';
-  }
-  canvas.addEventListener('pointerup', finishRotationDrag);
-  canvas.addEventListener('pointercancel', finishRotationDrag);
-  canvas.addEventListener('lostpointercapture', finishRotationDrag);
 
   function applyDisplayMode() {
     eachMaterial(material => {
@@ -847,14 +703,13 @@ export function createViewer(canvas, container) {
     setDisplayMode(mode) { displayMode = mode; applyDisplayMode(); },
     setBackground(mode) { backgroundMode = mode; const colors = { dark: 0x101318, white: 0xe9edf2, sunset: 0x3a2930 }; renderer.setClearColor(colors[mode] ?? colors.dark); scene.background = new THREE.Color(colors[mode] ?? colors.dark); },
     setModelPosition(axis, value) { if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return; modelPosition[axis] = Number(value) || 0; modelPivot.position.set(pivotOrigin.x + modelPosition.x, pivotOrigin.y + modelPosition.y, pivotOrigin.z + modelPosition.z); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
-    resetModelPosition() { if (!modelPivot) return; modelPosition.x = modelPosition.y = modelPosition.z = 0; modelPivot.position.copy(pivotOrigin); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); updateRotationGizmo(); },
-    setModelRotation(axis, degrees) { if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return; modelRotation[axis] = THREE.MathUtils.clamp(degrees, -180, 180); modelPivot.rotation.set(THREE.MathUtils.degToRad(modelRotation.x), THREE.MathUtils.degToRad(modelRotation.y), THREE.MathUtils.degToRad(modelRotation.z)); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); updateRotationGizmo(); },
-    resetModelRotation() { if (!modelPivot) return; modelRotation.x = modelRotation.y = modelRotation.z = 0; modelPivot.rotation.set(0, 0, 0); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); updateRotationGizmo(); },
+    resetModelPosition() { if (!modelPivot) return; modelPosition.x = modelPosition.y = modelPosition.z = 0; modelPivot.position.copy(pivotOrigin); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
+    setModelRotation(axis, degrees) { if (!modelPivot || !['x', 'y', 'z'].includes(axis)) return; modelRotation[axis] = THREE.MathUtils.clamp(degrees, -180, 180); modelPivot.rotation.set(THREE.MathUtils.degToRad(modelRotation.x), THREE.MathUtils.degToRad(modelRotation.y), THREE.MathUtils.degToRad(modelRotation.z)); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
+    resetModelRotation() { if (!modelPivot) return; modelRotation.x = modelRotation.y = modelRotation.z = 0; modelPivot.rotation.set(0, 0, 0); modelPivot.updateMatrixWorld(true); bounds = new THREE.Box3().setFromObject(modelPivot); applyCut(); },
     clearIntegrityHighlight,
     highlightIntegrityObject,
     setColor(value) { eachMaterial(material => { material.userData.check3dUserColor = value; if (material.color && displayMode !== 'clay') material.color.set(value); }); },
     setAutoRotate(value) { controls.autoRotate = value; },
-    setRotationTool,
     setView(view) { if (!modelRoot || !bounds) return; const center = bounds.getCenter(new THREE.Vector3()), size = bounds.getSize(new THREE.Vector3()), d = Math.max(size.x, size.y, size.z, 1) * 2.2; if (view === 'front') camera.position.set(center.x, center.y - d, center.z); if (view === 'top') camera.position.set(center.x, center.y, center.z + d); if (view === 'side') camera.position.set(center.x + d, center.y, center.z); controls.target.copy(center); controls.update(); }
   };
 }
