@@ -156,3 +156,11 @@ input[type=number],.cut-position-input{font-size:16px!important}
 .integrity-object-copy small{font-size:10px;color:var(--muted);line-height:1.4}
 .integrity-highlight-button{flex:0 0 auto;padding:7px 9px;min-height:34px;font-size:10px;border-color:#8a493d;color:#ffb19f;background:#33221f}
 .integrity-object-pass{font-size:10px;color:#8de0b3;white-space:nowrap;font-weight:700}
+
+/* v1.5.0 desktop three-axis rotation gizmo */
+.rotate-tool-button{display:none;position:absolute;left:14px;bottom:14px;z-index:4;align-items:center;gap:8px;padding:10px 14px;background:#202833ed;border:1px solid #64748b;color:#f1f5f9;border-radius:9px;font-size:13px;font-weight:700;box-shadow:0 3px 14px #0005}
+.rotate-tool-button.active{background:#315d83;border-color:#79bfff;color:#fff}
+.rotation-tool-active #viewerCanvas{cursor:grab}
+.rotation-tool-active .viewport-hint{display:none}
+@media(min-width:800px){.rotate-tool-button{display:flex}}
+@media(max-width:799px){.rotate-tool-button{display:none}}
